@@ -1,0 +1,2451 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>巡查訊息產生器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --line: #d7deea;
+      --text: #1c2430;
+      --muted: #5e6a7d;
+      --accent: #295dff;
+      --accent-soft: #e8efff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, "Microsoft JhengHei", "PingFang TC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+    }
+
+    .intro {
+      margin: 0 0 24px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .layout {
+      display: block;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 8px 30px rgba(29, 41, 67, 0.06);
+    }
+
+    .panel h2 {
+      margin: 0 0 16px;
+      font-size: 20px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font: inherit;
+      color: var(--text);
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .section-title {
+      margin: 20px 0 12px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .checklist-box {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: #fbfcff;
+    }
+
+    .checklist-head {
+      margin: 0 0 10px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .occupancy-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .occupancy-table th,
+    .occupancy-table td {
+      border: 1px solid var(--line);
+      padding: 8px 6px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .occupancy-table thead th {
+      min-width: 62px;
+      padding: 10px 8px;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+    }
+
+    .occupancy-table th:first-child,
+    .occupancy-table td:first-child {
+      width: 68px;
+      font-weight: 700;
+      background: #f5f8ff;
+    }
+
+    .occupancy-table input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+
+    .occupancy-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font: inherit;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.2fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .mic-options {
+      display: none;
+      gap: 14px;
+      align-items: center;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      flex-wrap: wrap;
+    }
+
+    .mic-options.active {
+      display: flex;
+    }
+
+    .mic-options label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 400;
+      cursor: pointer;
+    }
+
+    .problem-list {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .problem-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #fff;
+    }
+
+    .problem-text {
+      line-height: 1.4;
+    }
+
+    .danger {
+      background: #fff1f1;
+      color: #b42318;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .calendar-box {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .calendar-weekdays,
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+
+    .calendar-weekdays div {
+      padding: 10px 6px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      background: #f5f8ff;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .calendar-cell {
+      min-height: 64px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 6px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    .calendar-cell:nth-child(7n) {
+      border-right: 0;
+    }
+
+    .calendar-cell.empty {
+      background: #fafcff;
+    }
+
+    .calendar-day {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .calendar-day input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 11px 16px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .secondary {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .output-box {
+      min-height: 520px;
+      white-space: pre-wrap;
+      line-height: 1.7;
+      border: 1px solid var(--line);
+      background: #fbfcff;
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .hint {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .form-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      overflow-x: visible;
+      margin-bottom: 16px;
+    }
+
+    .header-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      overflow-x: visible;
+      margin-bottom: 12px;
+    }
+
+    .locker-row {
+      margin-bottom: 16px;
+    }
+
+    .form-tab {
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--line);
+      white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(29, 41, 67, 0.06);
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    }
+
+    .form-tab.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 8px 18px rgba(41, 93, 255, 0.24);
+      transform: translateY(-1px);
+      font-weight: 800;
+    }
+
+    .form-tab:hover {
+      border-color: #9fb3ff;
+      box-shadow: 0 6px 14px rgba(29, 41, 67, 0.1);
+    }
+
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .problem-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .occupancy-table th,
+      .occupancy-table td {
+        padding: 10px 4px;
+      }
+
+      .occupancy-table thead th {
+        min-width: 68px;
+        padding: 12px 8px;
+        font-size: 12px;
+      }
+
+      .occupancy-table input[type="checkbox"] {
+        width: 22px;
+        height: 22px;
+      }
+
+      .occupancy-label {
+        min-height: 46px;
+      }
+
+      .form-tabs {
+        padding-bottom: 0;
+      }
+
+      .output-box {
+        min-height: 420px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>巡查訊息產生器</h1>
+    <p class="intro">依固定格式整理。填好左邊欄位後，右邊會即時生成可直接貼出的訊息。</p>
+    <div class="layout">
+      <section class="panel">
+        <h2 id="formHeading">巡查</h2>
+
+        <div class="header-row">
+          <button class="form-tab" data-tab-target="tab-import" type="button">匯入</button>
+          <button class="form-tab" data-tab-target="tab-preview" type="button">結果</button>
+        </div>
+
+        <div class="form-tabs">
+          <button class="form-tab active" data-tab-target="tab-class" type="button">1.課堂</button>
+          <button class="form-tab" data-tab-target="tab-public" type="button">2.公區</button>
+          <button class="form-tab" data-tab-target="tab-washroom" type="button">3.洗手間</button>
+          <button class="form-tab" data-tab-target="tab-avit" type="button">4.AV/IT</button>
+          <button class="form-tab" data-tab-target="tab-drill" type="button">5.演習</button>
+          <button class="form-tab" data-tab-target="tab-duty" type="button">6.當值</button>
+          <button class="form-tab" data-tab-target="tab-repair" type="button">7.維修</button>
+          <button class="form-tab" data-tab-target="tab-other" type="button">8.其他</button>
+        </div>
+
+        <div class="locker-row field">
+          <label for="lockerCount">Locker 共借出次數</label>
+          <input id="lockerCount" type="text" value="">
+        </div>
+
+        <div id="tab-class" class="tab-pane active">
+        <div class="grid">
+          <div class="field">
+            <label for="date">日期</label>
+            <input id="date" type="text" value="24/4/2026">
+          </div>
+
+          <div class="field">
+            <label for="time">時間</label>
+            <input id="time" type="text" value="0915">
+          </div>
+
+          <div class="field full">
+            <label>課堂情況</label>
+            <div class="checklist-box">
+              <p class="checklist-head">勾選 `TC01 - TC06` 在上午或下午是否有課堂，系統會自動生成文字。</p>
+              <table class="occupancy-table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>TC01</th>
+                    <th>TC02</th>
+                    <th>TC03</th>
+                    <th>TC04</th>
+                    <th>TC05</th>
+                    <th>TC06</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>AM</td>
+                    <td><label class="occupancy-label"><input class="occupancy" data-period="am" data-room="TC01" type="checkbox"></label></td>
+                    <td><label class="occupancy-label"><input class="occupancy" data-period="am" data-room="TC02" type="checkbox"></label></td>
+                    <td><label class="occupancy-label"><input class="occupancy" data-period="am" data-room="TC03" type="checkbox"></label></td>
+                    <td><label class="occupancy-label"><input class="occupancy" data-period="am" data-room="TC04" type="checkbox"></label></td>
+                    <td><label class="occupancy-label"><input class="occupancy" data-period="am" data-room="TC05" type="checkbox"></label></td>
+                    <td><label class="occupancy-label"><input class="occupancy" data-period="am" data-room="TC06" type="checkbox"></label></td>
+                  </tr>
+                  <tr>
+                    <td>PM</td>
+                    <td><label class="occupancy-label"><input class="occupancy" data-period="pm" data-room="TC01" type="checkbox"></label></td>
+                    <td><label class="occupancy-label"><input class="occupancy" data-period="pm" data-room="TC02" type="checkbox"></label></td>
+                    <td><label class="occupancy-label"><input class="occupancy" data-period="pm" data-room="TC03" type="checkbox"></label></td>
+                    <td><label class="occupancy-label"><input class="occupancy" data-period="pm" data-room="TC04" type="checkbox"></label></td>
+                    <td><label class="occupancy-label"><input class="occupancy" data-period="pm" data-room="TC05" type="checkbox"></label></td>
+                    <td><label class="occupancy-label"><input class="occupancy" data-period="pm" data-room="TC06" type="checkbox"></label></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="field full">
+            <label>課室情況</label>
+            <div class="checklist-box">
+              <p class="checklist-head">預設正常狀態跟範例一致：課室/老師枱 = 整齊乾淨，盒仔內遙控 = 整齊，濕紙巾/咪套 = 數量足夠，窗簾 = 已拉上，手咪/clip mic = 正確充電。只有選擇「有問題」時才需要輸入描述並加入問題。</p>
+              <div class="problem-grid">
+                <div class="field">
+                  <label for="classroomProblemRoom">課室</label>
+                  <select id="classroomProblemRoom">
+                    <option value="TC01">TC01</option>
+                    <option value="TC02">TC02</option>
+                    <option value="TC03">TC03</option>
+                    <option value="TC04">TC04</option>
+                    <option value="TC05">TC05</option>
+                    <option value="TC06">TC06</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="classroomProblemItem">項目</label>
+                  <select id="classroomProblemItem">
+                    <option value="roomClean">課室</option>
+                    <option value="teacherDesk">老師枱</option>
+                    <option value="handMic">手咪</option>
+                    <option value="clipMic">clip mic</option>
+                    <option value="remote">盒仔內遙控</option>
+                    <option value="wetWipes">濕紙巾</option>
+                    <option value="micCover">咪套</option>
+                    <option value="curtain">窗簾</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="classroomProblemStatus">狀態</label>
+                  <select id="classroomProblemStatus">
+                    <option value="normal">正常</option>
+                    <option value="problem">有問題</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="classroomProblemDetail">問題描述</label>
+                  <input id="classroomProblemDetail" type="text" placeholder="請輸入問題描述">
+                </div>
+                <div id="micOptions" class="mic-options" aria-label="hand mic options">
+                  <label><input id="mic1Problem" type="checkbox"> 手咪 1</label>
+                  <label><input id="mic2Problem" type="checkbox"> 手咪 2</label>
+                </div>
+                <button id="addClassroomProblemBtn" class="secondary" type="button">加入問題</button>
+              </div>
+              <div id="classroomProblemList" class="problem-list"></div>
+            </div>
+          </div>
+
+          <div class="field full">
+            <label>Wifi 鐘情況</label>
+            <div class="checklist-box">
+              <p class="checklist-head">如全部正常，系統會自動生成總結句。若有個別課室 wifi 鐘有問題，可加入異常描述。</p>
+              <div class="problem-grid">
+                <div class="field">
+                  <label for="wifiProblemRoom">課室</label>
+                  <select id="wifiProblemRoom">
+                    <option value="TC01">TC01</option>
+                    <option value="TC02">TC02</option>
+                    <option value="TC03">TC03</option>
+                    <option value="TC04">TC04</option>
+                    <option value="TC05">TC05</option>
+                    <option value="TC06">TC06</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="wifiProblemDetail">問題描述</label>
+                  <input id="wifiProblemDetail" type="text" placeholder="請輸入問題描述">
+                </div>
+                <button id="addWifiProblemBtn" class="secondary" type="button">加入問題</button>
+              </div>
+              <div id="wifiProblemList" class="problem-list"></div>
+            </div>
+          </div>
+        </div>
+        </div>
+
+        <div id="tab-public" class="tab-pane">
+        <div class="section-title">公共區域</div>
+
+        <div class="field">
+          <label>Breakout 情況</label>
+          <div class="checklist-box">
+            <p class="checklist-head">固定項目檢查。預設正常狀態跟範例一致：枱凳 = 乾淨整齊。只有選擇「有問題」時才需要輸入描述並加入問題。</p>
+            <div class="problem-grid">
+              <div class="field">
+                <label for="breakoutProblemItem">項目</label>
+                <select id="breakoutProblemItem">
+                  <option value="chairsTables">枱凳</option>
+                </select>
+              </div>
+                <div class="field">
+                  <label for="breakoutProblemStatus">狀態</label>
+                  <select id="breakoutProblemStatus">
+                    <option value="normal">正常（乾淨整齊）</option>
+                    <option value="problem">有問題</option>
+                  </select>
+                </div>
+              <div class="field">
+                <label for="breakoutProblemDetail">問題描述</label>
+                <input id="breakoutProblemDetail" type="text" placeholder="請輸入問題描述">
+              </div>
+              <button id="addBreakoutProblemBtn" class="secondary" type="button">加入問題</button>
+            </div>
+            <div id="breakoutProblemList" class="problem-list"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Leisure room</label>
+          <div class="checklist-box">
+            <p class="checklist-head">固定項目檢查。預設正常狀態跟範例一致：枱凳 = 乾淨整齊，咖啡機杯蓋 = 數量足夠，咖啡棒 = 數量足夠。只有選擇「有問題」時才需要輸入描述並加入問題。</p>
+            <div class="problem-grid">
+              <div class="field">
+                <label for="leisureProblemItem">項目</label>
+                <select id="leisureProblemItem">
+                  <option value="chairsTables">枱凳</option>
+                  <option value="cupLids">咖啡機杯蓋</option>
+                  <option value="coffeeSticks">咖啡棒</option>
+                </select>
+              </div>
+                <div class="field">
+                  <label for="leisureProblemStatus">狀態</label>
+                  <select id="leisureProblemStatus">
+                    <option value="normal">正常（乾淨整齊）</option>
+                    <option value="problem">有問題</option>
+                  </select>
+                </div>
+              <div class="field">
+                <label for="leisureProblemDetail">問題描述</label>
+                <input id="leisureProblemDetail" type="text" placeholder="請輸入問題描述">
+              </div>
+              <button id="addLeisureProblemBtn" class="secondary" type="button">加入問題</button>
+            </div>
+            <div id="leisureProblemList" class="problem-list"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>設施情況</label>
+          <div class="checklist-box">
+            <p class="checklist-head">固定項目檢查。預設正常狀態跟範例一致：各項設施 = 一切正常。只有選擇「有問題」時才需要輸入描述並加入問題。</p>
+            <div class="problem-grid">
+              <div class="field">
+                <label for="facilityProblemItem">設施</label>
+                <select id="facilityProblemItem">
+                  <option value="水機">水機</option>
+                  <option value="微波爐">微波爐</option>
+                  <option value="Coffee machine">咖啡機</option>
+                  <option value="AED機">AED機</option>
+                  <option value="BMS系統">BMS系統</option>
+                  <option value="printer">打印機</option>
+                  <option value="消防panel">消防panel</option>
+                  <option value="走廊電腦">走廊電腦</option>
+                  <option value="走廊Locker">走廊Locker</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="facilityProblemStatus">狀態</label>
+                <select id="facilityProblemStatus">
+                  <option value="normal">正常（一切正常）</option>
+                  <option value="problem">有問題</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="facilityProblemDetail">問題描述</label>
+                <input id="facilityProblemDetail" type="text" placeholder="請輸入問題描述">
+              </div>
+              <button id="addFacilityProblemBtn" class="secondary" type="button">加入問題</button>
+            </div>
+            <div id="facilityProblemList" class="problem-list"></div>
+          </div>
+        </div>
+
+        </div>
+
+        <div id="tab-washroom" class="tab-pane">
+        <div class="field">
+          <label for="toiletStatus">洗手間情況</label>
+          <textarea id="toiletStatus"></textarea>
+        </div>
+
+        <div class="field">
+          <label>滴水情況</label>
+          <div class="checklist-box">
+            <p class="checklist-head">手動新增滴水情況條目，每條一行輸出，條目之間自動空一行。</p>
+            <div class="problem-grid">
+              <div class="field full">
+                <label for="dripEntryInput">新增條目</label>
+                <input id="dripEntryInput" type="text" placeholder="請輸入一條滴水情況">
+              </div>
+              <button id="addDripEntryBtn" class="secondary" type="button">加入條目</button>
+            </div>
+            <div id="dripEntryList" class="problem-list"></div>
+          </div>
+        </div>
+        </div>
+
+        <div id="tab-avit" class="tab-pane">
+
+        <div class="field">
+          <label>AV/IT 設施情況</label>
+          <div class="checklist-box">
+            <p class="checklist-head">手動新增 AV/IT 條目，輸出會自動編成 1）2）3）... 的格式。</p>
+            <div class="problem-grid">
+              <div class="field full">
+                <label for="avEntryInput">新增條目</label>
+                <input id="avEntryInput" type="text" placeholder="請輸入一條相關條目">
+              </div>
+              <button id="addAvEntryBtn" class="secondary" type="button">加入條目</button>
+            </div>
+            <div id="avEntryList" class="problem-list"></div>
+          </div>
+        </div>
+        </div>
+
+        <div id="tab-drill" class="tab-pane">
+        <div class="field">
+          <label>演習或培訓</label>
+          <div class="checklist-box">
+            <p class="checklist-head">這類屬於非固定事項，由使用者手動新增中文條目。</p>
+            <div class="problem-grid">
+              <div class="field full">
+                <label for="drillEntryInput">新增條目</label>
+                <input id="drillEntryInput" type="text" placeholder="請輸入一條演習或培訓條目">
+              </div>
+              <button id="addDrillEntryBtn" class="secondary" type="button">加入條目</button>
+            </div>
+            <div id="drillEntryList" class="problem-list"></div>
+          </div>
+        </div>
+        </div>
+
+        <div id="tab-duty" class="tab-pane">
+        <div class="field">
+          <label>當值安排</label>
+          <div class="checklist-box">
+            <p class="checklist-head">輸入名稱，再勾選日期，系統會輸出成「名稱：日期列表」。</p>
+            <div class="problem-grid">
+              <div class="field">
+                <label for="dutyEntryName">名稱</label>
+                <input id="dutyEntryName" type="text" placeholder="請輸入名稱">
+              </div>
+              <div class="field">
+                <label for="dutyEntryMonth">月份</label>
+                <input id="dutyEntryMonth" type="number" min="1" max="12" value="4">
+              </div>
+            </div>
+            <div class="field">
+              <label>日期</label>
+              <div class="calendar-box">
+                <div class="calendar-weekdays">
+                  <div>日</div>
+                  <div>一</div>
+                  <div>二</div>
+                  <div>三</div>
+                  <div>四</div>
+                  <div>五</div>
+                  <div>六</div>
+                </div>
+                <div id="dutyDateGrid" class="calendar-grid"></div>
+              </div>
+            </div>
+            <div class="actions">
+              <button id="addDutyEntryBtn" class="secondary" type="button">加入條目</button>
+              <button id="clearDutyDatesBtn" class="secondary" type="button">清除日期</button>
+            </div>
+            <div id="dutyEntryList" class="problem-list"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>請假安排</label>
+          <div class="checklist-box">
+            <p class="checklist-head">輸入名稱，再勾選日期，系統會輸出成「名稱：日期列表」。</p>
+            <div class="problem-grid">
+              <div class="field">
+                <label for="leaveEntryName">名稱</label>
+                <input id="leaveEntryName" type="text" placeholder="請輸入名稱">
+              </div>
+              <div class="field">
+                <label for="leaveEntryMonth">月份</label>
+                <input id="leaveEntryMonth" type="number" min="1" max="12" value="4">
+              </div>
+            </div>
+            <div class="field">
+              <label>日期</label>
+              <div class="calendar-box">
+                <div class="calendar-weekdays">
+                  <div>日</div>
+                  <div>一</div>
+                  <div>二</div>
+                  <div>三</div>
+                  <div>四</div>
+                  <div>五</div>
+                  <div>六</div>
+                </div>
+                <div id="leaveDateGrid" class="calendar-grid"></div>
+              </div>
+            </div>
+            <div class="actions">
+              <button id="addLeaveEntryBtn" class="secondary" type="button">加入條目</button>
+              <button id="clearLeaveDatesBtn" class="secondary" type="button">清除日期</button>
+            </div>
+            <div id="leaveEntryList" class="problem-list"></div>
+          </div>
+        </div>
+        </div>
+
+        <div id="tab-repair" class="tab-pane">
+        <div class="field">
+          <label>待維修事項</label>
+          <div class="checklist-box">
+            <p class="checklist-head">手動新增待維修條目，每條一行輸出。</p>
+            <div class="problem-grid">
+              <div class="field full">
+                <label for="repairEntryInput">新增條目</label>
+                <input id="repairEntryInput" type="text" placeholder="請輸入一條待維修事項">
+              </div>
+              <button id="addRepairEntryBtn" class="secondary" type="button">加入條目</button>
+            </div>
+            <div id="repairEntryList" class="problem-list"></div>
+          </div>
+        </div>
+        </div>
+
+        <div id="tab-other" class="tab-pane">
+        <div class="field">
+          <label>其他</label>
+          <div class="checklist-box">
+            <p class="checklist-head">手動新增其他事項條目，每條一行輸出。</p>
+            <div class="problem-grid">
+              <div class="field full">
+                <label for="otherEntryInput">新增條目</label>
+                <input id="otherEntryInput" type="text" placeholder="請輸入一條其他事項">
+              </div>
+              <button id="addOtherEntryBtn" class="secondary" type="button">加入條目</button>
+            </div>
+            <div id="otherEntryList" class="problem-list"></div>
+          </div>
+        </div>
+        </div>
+
+        <div id="tab-preview" class="tab-pane">
+        <div class="header-row">
+          <h2>生成結果</h2>
+          <button id="copyBtn" class="primary" type="button">複製內容</button>
+        </div>
+        <div id="output" class="output-box"></div>
+        <div id="copyHint" class="hint">可直接在本機瀏覽器開啟此檔案使用。</div>
+        </div>
+
+        <div id="tab-import" class="tab-pane">
+        <div class="actions">
+          <button id="importBtn" class="primary" type="button">開始匯入</button>
+          <button id="clearAllBtn" class="secondary" type="button">重設全頁</button>
+        </div>
+        <div class="field">
+          <label for="importText">匯入原文</label>
+          <textarea id="importText" placeholder="貼上整段巡查訊息，系統會自動拆入當值、請假、滴水情況、其他、AV/IT 設施情況、待維修事項"></textarea>
+        </div>
+        <div class="hint">會自動解析：`當值`、`請假`、`滴水情況`、`AV/IT 設施情況`、`待維修事項`、`其他`。</div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const fieldIds = [
+      "date",
+      "time",
+      "lockerCount",
+      "toiletStatus"
+    ];
+
+    const fields = Object.fromEntries(fieldIds.map((id) => [id, document.getElementById(id)]));
+    const occupancyInputs = Array.from(document.querySelectorAll(".occupancy"));
+    const formTabs = Array.from(document.querySelectorAll(".form-tab"));
+    const tabPanes = Array.from(document.querySelectorAll(".tab-pane"));
+    const output = document.getElementById("output");
+    const formHeading = document.getElementById("formHeading");
+    const copyBtn = document.getElementById("copyBtn");
+    const copyHint = document.getElementById("copyHint");
+    const classroomProblemRoom = document.getElementById("classroomProblemRoom");
+    const classroomProblemItem = document.getElementById("classroomProblemItem");
+    const classroomProblemDetail = document.getElementById("classroomProblemDetail");
+    const classroomProblemStatus = document.getElementById("classroomProblemStatus");
+    const micOptions = document.getElementById("micOptions");
+    const mic1Problem = document.getElementById("mic1Problem");
+    const mic2Problem = document.getElementById("mic2Problem");
+    const addClassroomProblemBtn = document.getElementById("addClassroomProblemBtn");
+    const classroomProblemList = document.getElementById("classroomProblemList");
+    const wifiProblemRoom = document.getElementById("wifiProblemRoom");
+    const wifiProblemDetail = document.getElementById("wifiProblemDetail");
+    const addWifiProblemBtn = document.getElementById("addWifiProblemBtn");
+    const wifiProblemList = document.getElementById("wifiProblemList");
+    const breakoutProblemDetail = document.getElementById("breakoutProblemDetail");
+    const breakoutProblemItem = document.getElementById("breakoutProblemItem");
+    const breakoutProblemStatus = document.getElementById("breakoutProblemStatus");
+    const addBreakoutProblemBtn = document.getElementById("addBreakoutProblemBtn");
+    const breakoutProblemList = document.getElementById("breakoutProblemList");
+    const leisureProblemDetail = document.getElementById("leisureProblemDetail");
+    const leisureProblemItem = document.getElementById("leisureProblemItem");
+    const leisureProblemStatus = document.getElementById("leisureProblemStatus");
+    const addLeisureProblemBtn = document.getElementById("addLeisureProblemBtn");
+    const leisureProblemList = document.getElementById("leisureProblemList");
+    const facilityProblemItem = document.getElementById("facilityProblemItem");
+    const facilityProblemStatus = document.getElementById("facilityProblemStatus");
+    const facilityProblemDetail = document.getElementById("facilityProblemDetail");
+    const addFacilityProblemBtn = document.getElementById("addFacilityProblemBtn");
+    const facilityProblemList = document.getElementById("facilityProblemList");
+    const drillEntryInput = document.getElementById("drillEntryInput");
+    const addDrillEntryBtn = document.getElementById("addDrillEntryBtn");
+    const drillEntryList = document.getElementById("drillEntryList");
+    const avEntryInput = document.getElementById("avEntryInput");
+    const addAvEntryBtn = document.getElementById("addAvEntryBtn");
+    const avEntryList = document.getElementById("avEntryList");
+    const dripEntryInput = document.getElementById("dripEntryInput");
+    const addDripEntryBtn = document.getElementById("addDripEntryBtn");
+    const dripEntryList = document.getElementById("dripEntryList");
+    const repairEntryInput = document.getElementById("repairEntryInput");
+    const addRepairEntryBtn = document.getElementById("addRepairEntryBtn");
+    const repairEntryList = document.getElementById("repairEntryList");
+    const otherEntryInput = document.getElementById("otherEntryInput");
+    const addOtherEntryBtn = document.getElementById("addOtherEntryBtn");
+    const otherEntryList = document.getElementById("otherEntryList");
+    const dutyEntryName = document.getElementById("dutyEntryName");
+    const dutyEntryMonth = document.getElementById("dutyEntryMonth");
+    const dutyDateGrid = document.getElementById("dutyDateGrid");
+    const addDutyEntryBtn = document.getElementById("addDutyEntryBtn");
+    const clearDutyDatesBtn = document.getElementById("clearDutyDatesBtn");
+    const dutyEntryList = document.getElementById("dutyEntryList");
+    const leaveEntryName = document.getElementById("leaveEntryName");
+    const leaveEntryMonth = document.getElementById("leaveEntryMonth");
+    const leaveDateGrid = document.getElementById("leaveDateGrid");
+    const addLeaveEntryBtn = document.getElementById("addLeaveEntryBtn");
+    const clearLeaveDatesBtn = document.getElementById("clearLeaveDatesBtn");
+    const leaveEntryList = document.getElementById("leaveEntryList");
+    const importText = document.getElementById("importText");
+    const importBtn = document.getElementById("importBtn");
+    const clearAllBtn = document.getElementById("clearAllBtn");
+    const defaultAmRooms = ["TC01", "TC02", "TC03", "TC05", "TC06"];
+    const classroomRooms = ["TC01", "TC02", "TC03", "TC04", "TC05", "TC06"];
+    const classroomItemLabels = {
+      roomClean: "課室",
+      teacherDesk: "老師枱",
+      handMic: "手咪",
+      clipMic: "clip mic",
+      remote: "盒仔內遙控",
+      wetWipes: "濕紙巾",
+      micCover: "咪套",
+      curtain: "窗簾"
+    };
+    const classroomNormalStatusLabels = {
+      roomClean: "整齊乾淨",
+      teacherDesk: "整齊乾淨",
+      handMic: "正確充電",
+      clipMic: "正確充電",
+      remote: "整齊",
+      wetWipes: "數量足夠",
+      micCover: "數量足夠",
+      curtain: "已拉上"
+    };
+    let classroomProblems = [];
+    let wifiProblems = [];
+    let breakoutProblems = [];
+    let leisureProblems = [];
+    let facilityProblems = [];
+    let avEntries = [];
+    let dripEntries = [];
+    let drillEntries = [];
+    let repairEntries = [];
+    let dutyEntries = [];
+    let leaveEntries = [];
+    let otherEntries = [];
+    const currentYear = new Date().getFullYear();
+    const STORAGE_KEY = "patrol-report-generator-state-v1";
+    const facilityItems = ["水機", "微波爐", "Coffee machine", "AED機", "BMS系統", "printer", "消防panel", "走廊電腦", "走廊Locker"];
+    const breakoutNormalStatusLabels = {
+      chairsTables: "乾淨整齊"
+    };
+    const leisureNormalStatusLabels = {
+      chairsTables: "乾淨整齊",
+      cupLids: "數量足夠",
+      coffeeSticks: "數量足夠"
+    };
+
+    function formatLocalDate(date) {
+      return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+    }
+
+    function formatLocalTime(date) {
+      return `${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(2, "0")}`;
+    }
+
+    function applyCurrentDateTime() {
+      const now = new Date();
+      fields.date.value = formatLocalDate(now);
+      fields.time.value = "0915";
+    }
+
+    applyCurrentDateTime();
+
+    const initialValues = Object.fromEntries(fieldIds.map((id) => [id, fields[id].value]));
+
+    function clean(value) {
+      return value.replace(/\r\n/g, "\n").trim();
+    }
+
+    function formatRoomList(rooms) {
+      if (rooms.length === 0) {
+        return "";
+      }
+
+      if (rooms.length === 1) {
+        return rooms[0];
+      }
+
+      if (rooms.length === 2) {
+        return `${rooms[0]} & ${rooms[1]}`;
+      }
+
+      return `${rooms.slice(0, -1).join(" ")} & ${rooms[rooms.length - 1]}`;
+    }
+
+    function getSelectedRooms(period) {
+      return occupancyInputs
+        .filter((input) => input.dataset.period === period && input.checked)
+        .map((input) => input.dataset.room);
+    }
+
+    function generateClassStatus() {
+      const amRooms = getSelectedRooms("am");
+      const pmRooms = getSelectedRooms("pm");
+      const lines = [];
+
+      if (amRooms.length > 0) {
+        lines.push(`今天早上${formatRoomList(amRooms)}有課堂`);
+      }
+
+      if (pmRooms.length > 0) {
+        lines.push(`今天下午${formatRoomList(pmRooms)}有課堂`);
+      }
+
+      if (lines.length === 0) {
+        return "";
+      }
+
+      return lines.join("\n");
+    }
+
+    function updateFormHeading() {
+      const dateText = clean(fields.date.value);
+      formHeading.textContent = dateText ? `${dateText}- 巡查` : "巡查";
+    }
+
+    function updateClassroomControls() {
+      const isHandMic = classroomProblemItem.value === "handMic";
+      micOptions.classList.toggle("active", isHandMic);
+      if (!isHandMic) {
+        mic1Problem.checked = false;
+        mic2Problem.checked = false;
+      }
+
+      const isProblem = classroomProblemStatus.value === "problem";
+      classroomProblemDetail.parentElement.style.display = isProblem ? "flex" : "none";
+      addClassroomProblemBtn.style.display = isProblem ? "inline-flex" : "none";
+      if (!isProblem) {
+        classroomProblemDetail.value = "";
+      }
+
+      classroomProblemStatus.options[0].textContent = `正常（${classroomNormalStatusLabels[classroomProblemItem.value] || "正常"}）`;
+    }
+
+    function getRoomProblems(room) {
+      return classroomProblems.filter((problem) => problem.room === room);
+    }
+
+    function getRoomProblemItems(roomProblems) {
+      const items = new Set();
+      roomProblems.forEach((problem) => {
+        items.add(problem.itemKey);
+      });
+      return items;
+    }
+
+    function getNormalClassroomParts(problemItems, roomProblems) {
+      const parts = [];
+
+      if (!problemItems.has("roomClean")) {
+        parts.push("整齊乾淨");
+      }
+
+      if (!problemItems.has("teacherDesk")) {
+        parts.push("老師枱整齊乾淨");
+      }
+
+      const handMicProblem = roomProblems.find((problem) => problem.itemKey === "handMic");
+      const clipMicNormal = !problemItems.has("clipMic");
+
+      if (!handMicProblem) {
+        if (clipMicNormal) {
+          parts.push("兩枝手咪及一個clip mic正確充電");
+        } else {
+          parts.push("兩枝手咪正確充電");
+        }
+      } else {
+        const problemMicCount = handMicProblem.mics.length;
+        const normalMicCount = 2 - problemMicCount;
+        if (normalMicCount === 2) {
+          parts.push("兩枝手咪正確充電");
+        }
+        if (normalMicCount === 1) {
+          parts.push("1枝手咪正確充電");
+        }
+        if (clipMicNormal) {
+          parts.push("clip mic正確充電");
+        }
+      }
+
+      if (!problemItems.has("remote")) {
+        parts.push("盒仔內遙控整齊");
+      }
+
+      const wetWipesNormal = !problemItems.has("wetWipes");
+      const micCoverNormal = !problemItems.has("micCover");
+      if (wetWipesNormal && micCoverNormal) {
+        parts.push("濕紙巾及咪套數量足夠");
+      } else {
+        if (wetWipesNormal) {
+          parts.push("濕紙巾數量足夠");
+        }
+        if (micCoverNormal) {
+          parts.push("咪套數量足夠");
+        }
+      }
+
+      if (!problemItems.has("curtain")) {
+        parts.push("窗簾已拉上");
+      }
+
+      return parts;
+    }
+
+    function getProblemDescriptions(roomProblems) {
+      return roomProblems.map((problem) => {
+        if (problem.itemKey === "handMic") {
+          return `${problem.mics.length}枝手咪${problem.detail}`;
+        }
+        return `${classroomItemLabels[problem.itemKey]} ${problem.detail}`;
+      });
+    }
+
+    function renderClassroomProblemList() {
+      if (classroomProblems.length === 0) {
+        classroomProblemList.innerHTML = "";
+        return;
+      }
+
+      classroomProblemList.innerHTML = classroomProblems.map((problem, index) => {
+        const text = problem.itemKey === "handMic"
+          ? `${problem.room} 手咪問題: Mic ${problem.mics.join(" / Mic ")} ${problem.detail}`
+          : `${problem.room} ${classroomItemLabels[problem.itemKey]} ${problem.detail}`;
+        return `
+          <div class="problem-item">
+            <div class="problem-text">${text}</div>
+            <button class="danger" type="button" data-remove-problem-index="${index}">刪除</button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderWifiProblemList() {
+      if (wifiProblems.length === 0) {
+        wifiProblemList.innerHTML = "";
+        return;
+      }
+
+      wifiProblemList.innerHTML = wifiProblems.map((problem, index) => {
+        return `
+          <div class="problem-item">
+            <div class="problem-text">${problem.room} wifi鐘 ${problem.detail}</div>
+            <button class="danger" type="button" data-remove-wifi-problem-index="${index}">刪除</button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderSimpleProblemList(listElement, problems, removeKey) {
+      if (problems.length === 0) {
+        listElement.innerHTML = "";
+        return;
+      }
+
+      listElement.innerHTML = problems.map((problem, index) => {
+        return `
+          <div class="problem-item">
+            <div class="problem-text">${problem.text}</div>
+            <button class="danger" type="button" data-${removeKey}="${index}">刪除</button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderEntryList(listElement, entries, removeKey) {
+      if (entries.length === 0) {
+        listElement.innerHTML = "";
+        return;
+      }
+
+      listElement.innerHTML = entries.map((entry, index) => {
+        return `
+          <div class="problem-item">
+            <div class="problem-text">${entry}</div>
+            <button class="danger" type="button" data-${removeKey}="${index}">刪除</button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderCalendarChecks(container, namePrefix, month) {
+      const safeMonth = Math.min(Math.max(Number(month) || 1, 1), 12);
+      const firstDay = new Date(currentYear, safeMonth - 1, 1).getDay();
+      const daysInMonth = new Date(currentYear, safeMonth, 0).getDate();
+      const cells = [];
+
+      for (let index = 0; index < firstDay; index += 1) {
+        cells.push('<div class="calendar-cell empty"></div>');
+      }
+
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        cells.push(`
+          <div class="calendar-cell">
+            <label class="calendar-day">
+              <div>${day}</div>
+              <input type="checkbox" name="${namePrefix}" value="${day}">
+            </label>
+          </div>
+        `);
+      }
+
+      while (cells.length % 7 !== 0) {
+        cells.push('<div class="calendar-cell empty"></div>');
+      }
+
+      container.innerHTML = cells.join("");
+    }
+
+    function getCheckedDates(namePrefix) {
+      return Array.from(document.querySelectorAll(`input[name="${namePrefix}"]:checked`)).map((input) => Number(input.value));
+    }
+
+    function clearCheckedDates(namePrefix) {
+      document.querySelectorAll(`input[name="${namePrefix}"]`).forEach((input) => {
+        input.checked = false;
+      });
+    }
+
+    function renderCalendarEntryList(listElement, entries, removeKey) {
+      if (entries.length === 0) {
+        listElement.innerHTML = "";
+        return;
+      }
+
+      listElement.innerHTML = entries.map((entry, index) => {
+        const text = `${entry.name}：${entry.dates.map((day) => `${day}/${entry.month}`).join(",")}`;
+        return `
+          <div class="problem-item">
+            <div class="problem-text">${text}</div>
+            <button class="danger" type="button" data-${removeKey}="${index}">刪除</button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function activateMobileTab(targetId) {
+      formTabs.forEach((tab) => {
+        tab.classList.toggle("active", tab.dataset.tabTarget === targetId);
+      });
+      tabPanes.forEach((pane) => {
+        pane.classList.toggle("active", pane.id === targetId);
+      });
+    }
+
+    function joinNumberedEntries(entries) {
+      return entries.map((entry, index) => `${index + 1}）${entry}`).join("\n\n");
+    }
+
+    function syncAreaStatusOptions() {
+      breakoutProblemStatus.options[0].textContent = `正常（${breakoutNormalStatusLabels[breakoutProblemItem.value] || "正常"}）`;
+      leisureProblemStatus.options[0].textContent = `正常（${leisureNormalStatusLabels[leisureProblemItem.value] || "正常"}）`;
+      facilityProblemStatus.options[0].textContent = "正常（一切正常）";
+
+      const breakoutIsProblem = breakoutProblemStatus.value === "problem";
+      breakoutProblemDetail.parentElement.style.display = breakoutIsProblem ? "flex" : "none";
+      addBreakoutProblemBtn.style.display = breakoutIsProblem ? "inline-flex" : "none";
+      if (!breakoutIsProblem) {
+        breakoutProblemDetail.value = "";
+      }
+
+      const leisureIsProblem = leisureProblemStatus.value === "problem";
+      leisureProblemDetail.parentElement.style.display = leisureIsProblem ? "flex" : "none";
+      addLeisureProblemBtn.style.display = leisureIsProblem ? "inline-flex" : "none";
+      if (!leisureIsProblem) {
+        leisureProblemDetail.value = "";
+      }
+
+      const facilityIsProblem = facilityProblemStatus.value === "problem";
+      facilityProblemDetail.parentElement.style.display = facilityIsProblem ? "flex" : "none";
+      addFacilityProblemBtn.style.display = facilityIsProblem ? "inline-flex" : "none";
+      if (!facilityIsProblem) {
+        facilityProblemDetail.value = "";
+      }
+    }
+
+    function generateClassroomStatus() {
+      if (classroomProblems.length === 0) {
+        return "6個課室整齊乾淨，老師枱整齊乾淨，兩枝手咪及一個clip mic正確充電，盒仔內遙控整齊，濕紙巾及咪套數量足夠，窗簾已拉上";
+      }
+
+      const affectedRooms = classroomRooms.filter((room) => getRoomProblems(room).length > 0);
+      const unaffectedCount = classroomRooms.length - affectedRooms.length;
+      const lines = [];
+
+      if (unaffectedCount > 0) {
+        lines.push(`${unaffectedCount}個課室整齊乾淨，老師枱整齊乾淨，兩枝手咪及一個clip mic正確充電，盒仔內遙控整齊，濕紙巾及咪套數量足夠，窗簾已拉上`);
+      }
+
+      affectedRooms.forEach((room) => {
+        const roomProblems = getRoomProblems(room);
+        const problemItems = getRoomProblemItems(roomProblems);
+        const normalParts = getNormalClassroomParts(problemItems, roomProblems);
+        const problemDescriptions = getProblemDescriptions(roomProblems);
+        const normalText = normalParts.join("，");
+        const problemText = problemDescriptions.join("，");
+
+        if (normalText && problemText) {
+          lines.push(`${room}課室${normalText}，但${problemText}`);
+        } else if (normalText) {
+          lines.push(`${room}課室${normalText}`);
+        } else if (problemText) {
+          lines.push(`${room}課室${problemText}`);
+        }
+      });
+
+      return lines.join("\n");
+    }
+
+    function generateWifiStatus() {
+      if (wifiProblems.length === 0) {
+        return "6個課室wifi鐘時間準確";
+      }
+
+      const affectedRooms = classroomRooms.filter((room) => wifiProblems.some((problem) => problem.room === room));
+      const unaffectedCount = classroomRooms.length - affectedRooms.length;
+      const lines = [];
+
+      if (unaffectedCount > 0) {
+        lines.push(`${unaffectedCount}個課室wifi鐘時間準確`);
+      }
+
+      affectedRooms.forEach((room) => {
+        const roomProblems = wifiProblems.filter((problem) => problem.room === room).map((problem) => problem.detail).join("，");
+        lines.push(`${room}課室wifi鐘${roomProblems}`);
+      });
+
+      return lines.join("\n");
+    }
+
+    function generateBreakoutStatus() {
+      if (breakoutProblems.length === 0) {
+        return "枱凳整齊乾淨";
+      }
+
+      const normalParts = [];
+      if (!breakoutProblems.some((problem) => problem.type === "chairsTables")) {
+        normalParts.push("枱凳整齊乾淨");
+      }
+      const normalText = normalParts.join("，");
+      const problemText = breakoutProblems.map((problem) => `${problem.label} ${problem.detail}`).join("，");
+      return normalText ? `${normalText}，但${problemText}` : problemText;
+    }
+
+    function generateLeisureStatus() {
+      const problemItems = new Set(leisureProblems.map((problem) => problem.type));
+
+      const normalParts = [];
+      if (!problemItems.has("chairsTables")) {
+        normalParts.push("枱凳乾淨整齊");
+      }
+      if (!problemItems.has("cupLids") && !problemItems.has("coffeeSticks")) {
+        normalParts.push("咖啡機杯蓋及咖啡棒數量足夠");
+      } else {
+        if (!problemItems.has("cupLids")) {
+          normalParts.push("咖啡機杯蓋數量足夠");
+        }
+        if (!problemItems.has("coffeeSticks")) {
+          normalParts.push("咖啡棒數量足夠");
+        }
+      }
+
+      const problemParts = leisureProblems.map((problem) => `${problem.label} ${problem.detail}`);
+
+      if (normalParts.length === 0 && problemParts.length === 0) {
+        return "枱凳乾淨整齊，咖啡機杯蓋及咖啡棒數量足夠";
+      }
+
+      const normalText = normalParts.join("，");
+      const problemText = problemParts.join("，");
+      return normalText ? `${normalText}，但${problemText}` : problemText;
+    }
+
+    function generateFacilityStatus() {
+      if (facilityProblems.length === 0) {
+        return "水機，微波爐，Coffee machine, AED機 ，BMS系統，printer，消防panel，走廊電腦，走廊Locker一切正常";
+      }
+
+      const problemFacilities = new Set(facilityProblems.map((problem) => problem.item));
+      const normalFacilities = facilityItems
+        .filter((item) => !problemFacilities.has(item));
+      const issueTexts = facilityProblems.map((problem) => {
+        return `${problem.item} ${problem.detail}`;
+      });
+
+      if (normalFacilities.length > 0) {
+        const normalText = `${normalFacilities.join("，")}一切正常`;
+        const issueText = issueTexts.join("，");
+        return issueText ? `${normalText}，但${issueText}` : normalText;
+      }
+
+      return issueTexts.join("，");
+    }
+
+    function joinEntries(entries) {
+      return entries.join("\n\n");
+    }
+
+    function joinCalendarEntries(entries) {
+      return entries.map((entry) => `${entry.name}：${entry.dates.map((day) => `${day}/${entry.month}`).join(",")}`).join("\n");
+    }
+
+    function saveState() {
+      try {
+        const activeTabElement = formTabs.find((tab) => tab.classList.contains("active"));
+        const state = {
+          fields: Object.fromEntries(fieldIds.map((id) => [id, fields[id].value])),
+          occupancy: occupancyInputs.map((input) => ({
+            period: input.dataset.period,
+            room: input.dataset.room,
+            checked: input.checked
+          })),
+          classroomProblems,
+          wifiProblems,
+          breakoutProblems,
+          leisureProblems,
+          facilityProblems,
+          avEntries,
+          dripEntries,
+          drillEntries,
+          repairEntries,
+          dutyEntries,
+          leaveEntries,
+          otherEntries,
+          importText: importText.value,
+          activeTab: activeTabElement && activeTabElement.dataset ? activeTabElement.dataset.tabTarget : "tab-class"
+        };
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (error) {
+      }
+    }
+
+    function restoreState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return;
+        }
+
+        const state = JSON.parse(raw);
+
+        if (state.fields) {
+          fieldIds.forEach((id) => {
+            if (Object.prototype.hasOwnProperty.call(state.fields, id)) {
+              fields[id].value = state.fields[id];
+            }
+          });
+        }
+
+        if (Array.isArray(state.occupancy)) {
+          occupancyInputs.forEach((input) => {
+            const matched = state.occupancy.find((item) => item.period === input.dataset.period && item.room === input.dataset.room);
+            input.checked = Boolean(matched && matched.checked);
+          });
+        }
+
+        classroomProblems = Array.isArray(state.classroomProblems) ? state.classroomProblems : classroomProblems;
+        wifiProblems = Array.isArray(state.wifiProblems) ? state.wifiProblems : wifiProblems;
+        breakoutProblems = Array.isArray(state.breakoutProblems) ? state.breakoutProblems : breakoutProblems;
+        leisureProblems = Array.isArray(state.leisureProblems) ? state.leisureProblems : leisureProblems;
+        facilityProblems = Array.isArray(state.facilityProblems) ? state.facilityProblems : facilityProblems;
+        avEntries = Array.isArray(state.avEntries) ? state.avEntries : avEntries;
+        dripEntries = Array.isArray(state.dripEntries) ? state.dripEntries : dripEntries;
+        drillEntries = Array.isArray(state.drillEntries) ? state.drillEntries : drillEntries;
+        repairEntries = Array.isArray(state.repairEntries) ? state.repairEntries : repairEntries;
+        dutyEntries = Array.isArray(state.dutyEntries) ? state.dutyEntries : dutyEntries;
+        leaveEntries = Array.isArray(state.leaveEntries) ? state.leaveEntries : leaveEntries;
+        otherEntries = Array.isArray(state.otherEntries) ? state.otherEntries : otherEntries;
+        importText.value = typeof state.importText === "string" ? state.importText : importText.value;
+
+        renderClassroomProblemList();
+        renderWifiProblemList();
+        renderSimpleProblemList(breakoutProblemList, breakoutProblems, "remove-breakout-problem-index");
+        renderSimpleProblemList(leisureProblemList, leisureProblems, "remove-leisure-problem-index");
+        renderSimpleProblemList(facilityProblemList, facilityProblems, "remove-facility-problem-index");
+        renderEntryList(avEntryList, avEntries.map((entry, index) => `${index + 1}）${entry}`), "remove-av-entry-index");
+        renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index");
+        renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index");
+        renderCalendarEntryList(dutyEntryList, dutyEntries, "remove-duty-entry-index");
+        renderCalendarEntryList(leaveEntryList, leaveEntries, "remove-leave-entry-index");
+        renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index");
+        renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index");
+
+        if (state.activeTab) {
+          activateMobileTab(state.activeTab);
+        }
+      } catch (error) {
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch (removeError) {
+        }
+      }
+    }
+
+    function resetNonImportedSections() {
+      fieldIds.forEach((id) => {
+        fields[id].value = initialValues[id];
+      });
+      occupancyInputs.forEach((input) => {
+        input.checked = false;
+      });
+      classroomProblems = [];
+      renderClassroomProblemList();
+      classroomProblemDetail.value = "";
+      mic1Problem.checked = false;
+      mic2Problem.checked = false;
+      classroomProblemStatus.value = "normal";
+      updateClassroomControls();
+      wifiProblems = [];
+      renderWifiProblemList();
+      wifiProblemDetail.value = "";
+      breakoutProblems = [];
+      renderSimpleProblemList(breakoutProblemList, breakoutProblems, "remove-breakout-problem-index");
+      breakoutProblemDetail.value = "";
+      breakoutProblemStatus.value = "normal";
+      leisureProblems = [];
+      renderSimpleProblemList(leisureProblemList, leisureProblems, "remove-leisure-problem-index");
+      leisureProblemDetail.value = "";
+      leisureProblemStatus.value = "normal";
+      facilityProblems = [];
+      renderSimpleProblemList(facilityProblemList, facilityProblems, "remove-facility-problem-index");
+      facilityProblemDetail.value = "";
+      facilityProblemStatus.value = "normal";
+      drillEntries = [];
+      renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index");
+      drillEntryInput.value = "";
+      applyCurrentDateTime();
+    }
+
+    function resetAllPage() {
+      fieldIds.forEach((id) => {
+        fields[id].value = "";
+      });
+      fields.date.value = formatLocalDate(new Date());
+      fields.time.value = "0915";
+
+      occupancyInputs.forEach((input) => {
+        input.checked = false;
+      });
+
+      classroomProblems = [];
+      wifiProblems = [];
+      breakoutProblems = [];
+      leisureProblems = [];
+      facilityProblems = [];
+      avEntries = [];
+      dripEntries = [];
+      drillEntries = [];
+      repairEntries = [];
+      dutyEntries = [];
+      leaveEntries = [];
+      otherEntries = [];
+
+      classroomProblemDetail.value = "";
+      classroomProblemStatus.value = "normal";
+      mic1Problem.checked = false;
+      mic2Problem.checked = false;
+      wifiProblemDetail.value = "";
+      breakoutProblemDetail.value = "";
+      breakoutProblemStatus.value = "normal";
+      leisureProblemDetail.value = "";
+      leisureProblemStatus.value = "normal";
+      facilityProblemDetail.value = "";
+      facilityProblemStatus.value = "normal";
+      avEntryInput.value = "";
+      dripEntryInput.value = "";
+      drillEntryInput.value = "";
+      repairEntryInput.value = "";
+      otherEntryInput.value = "";
+      dutyEntryName.value = "";
+      dutyEntryMonth.value = "4";
+      leaveEntryName.value = "";
+      leaveEntryMonth.value = "4";
+      importText.value = "";
+
+      clearCheckedDates("duty-date");
+      clearCheckedDates("leave-date");
+      updateClassroomControls();
+      syncAreaStatusOptions();
+      renderClassroomProblemList();
+      renderWifiProblemList();
+      renderSimpleProblemList(breakoutProblemList, breakoutProblems, "remove-breakout-problem-index");
+      renderSimpleProblemList(leisureProblemList, leisureProblems, "remove-leisure-problem-index");
+      renderSimpleProblemList(facilityProblemList, facilityProblems, "remove-facility-problem-index");
+      renderEntryList(avEntryList, avEntries, "remove-av-entry-index");
+      renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index");
+      renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index");
+      renderCalendarEntryList(dutyEntryList, dutyEntries, "remove-duty-entry-index");
+      renderCalendarEntryList(leaveEntryList, leaveEntries, "remove-leave-entry-index");
+      renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index");
+      renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index");
+      localStorage.removeItem(STORAGE_KEY);
+      activateMobileTab("tab-class");
+      generateMessage();
+      copyHint.textContent = "已重設全頁。";
+    }
+
+    function parseSectionMap(rawText) {
+      const normalized = rawText.replace(/\r\n/g, "\n");
+      const sectionTitles = [
+        "滴水情況:",
+        "AV/IT 設施情況:",
+        "Drill or training topic and date:",
+        "Duty:",
+        "Leave:",
+        "待維修事項：",
+        "其他:"
+      ];
+
+      const lines = normalized.split("\n");
+      const sectionMap = {};
+      let currentTitle = null;
+
+      lines.forEach((line) => {
+        const matchedTitle = sectionTitles.find((title) => line.trim() === title);
+        if (matchedTitle) {
+          currentTitle = matchedTitle;
+          sectionMap[currentTitle] = [];
+          return;
+        }
+
+        if (currentTitle) {
+          sectionMap[currentTitle].push(line);
+        }
+      });
+
+      return Object.fromEntries(Object.entries(sectionMap).map(([title, valueLines]) => [title, valueLines.join("\n").trim()]));
+    }
+
+    function parseLineEntries(block) {
+      return clean(block)
+        ? clean(block).split("\n").map((item) => item.trim()).filter(Boolean)
+        : [];
+    }
+
+    function parseNumberedEntries(block) {
+      if (!clean(block)) {
+        return [];
+      }
+
+      const normalized = `\n${clean(block)}`;
+      const regex = /\n\d+）\s*([\s\S]*?)(?=\n\d+）|$)/g;
+      const results = [];
+      let match = regex.exec(normalized);
+
+      while (match) {
+        if (match[1] && match[1].trim()) {
+          results.push(match[1].trim());
+        }
+        match = regex.exec(normalized);
+      }
+
+      return results;
+    }
+
+    function parseCalendarEntries(block) {
+      if (!clean(block)) {
+        return [];
+      }
+
+      return clean(block).split("\n").map((line) => line.trim()).filter(Boolean).map((line) => {
+        const parts = line.split("：");
+        const name = (parts[0] || "").trim();
+        const datesPart = (parts[1] || "").trim();
+        const dates = datesPart
+          ? datesPart.split(",").map((item) => item.trim()).filter(Boolean).map((item) => {
+              const [day, month] = item.split("/").map((value) => Number(value));
+              return { day, month };
+            })
+          : [];
+
+        return {
+          name,
+          month: dates[0] ? dates[0].month : Number(dutyEntryMonth.value || 1),
+          dates: dates.map((item) => item.day)
+        };
+      }).filter((entry) => entry.name && entry.dates.length > 0);
+    }
+
+    function buildImportSummary() {
+      const lines = [];
+
+      if (dutyEntries.length > 0) {
+        lines.push(`Duty：${dutyEntries.map((entry) => `${entry.name}：${entry.dates.map((day) => `${day}/${entry.month}`).join(",")}`).join(" | ")}`);
+      }
+      if (leaveEntries.length > 0) {
+        lines.push(`Leave：${leaveEntries.map((entry) => `${entry.name}：${entry.dates.map((day) => `${day}/${entry.month}`).join(",")}`).join(" | ")}`);
+      }
+      if (dripEntries.length > 0) {
+        lines.push(`滴水情況：${dripEntries.join(" | ")}`);
+      }
+      if (avEntries.length > 0) {
+        lines.push(`AV/IT：${avEntries.join(" | ")}`);
+      }
+      if (repairEntries.length > 0) {
+        lines.push(`待維修事項：${repairEntries.join(" | ")}`);
+      }
+      if (otherEntries.length > 0) {
+        lines.push(`其他：${otherEntries.join(" | ")}`);
+      }
+
+      return lines;
+    }
+
+    function section(title, value) {
+      return `${title}\n${clean(value)}`;
+    }
+
+    function generateMessage() {
+      const message = [
+        "巡查完成 匯報情況如下：",
+        "",
+        `日期：${clean(fields.date.value)}`,
+        `時間：${clean(fields.time.value)}`,
+        "",
+         section("課堂情況: ", generateClassStatus()),
+        "",
+        generateClassroomStatus(),
+        "",
+        generateWifiStatus(),
+        "",
+        section("Breakout情況：", generateBreakoutStatus()),
+        "",
+        section("Leisure room:", generateLeisureStatus()),
+        "",
+        section("設施情況: ", generateFacilityStatus()),
+        "",
+        `Locker共借岀${clean(fields.lockerCount.value)}次`,
+        "",
+        section("洗手間情況：", fields.toiletStatus.value),
+        "",
+        section("滴水情況: ", joinEntries(dripEntries)),
+        "",
+        section("AV/IT 設施情況: ", joinNumberedEntries(avEntries)),
+        "",
+        section("Drill or training topic and date: ", joinEntries(drillEntries)),
+        "",
+        "Duty: ",
+        joinCalendarEntries(dutyEntries),
+        "",
+        "Leave:",
+        joinCalendarEntries(leaveEntries),
+        "",
+        "待維修事項：",
+        joinEntries(repairEntries),
+        "",
+        "其他:",
+        joinEntries(otherEntries)
+      ].join("\n");
+
+      output.textContent = message;
+      return message;
+    }
+
+    fieldIds.forEach((id) => {
+      fields[id].addEventListener("input", () => {
+        if (id === "date") {
+          updateFormHeading();
+        }
+        generateMessage();
+        saveState();
+      });
+    });
+
+    occupancyInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        generateMessage();
+        saveState();
+      });
+    });
+
+    formTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        activateMobileTab(tab.dataset.tabTarget);
+        saveState();
+      });
+      tab.addEventListener("touchend", (event) => {
+        event.preventDefault();
+        activateMobileTab(tab.dataset.tabTarget);
+        saveState();
+      }, { passive: false });
+    });
+
+    classroomProblemItem.addEventListener("change", updateClassroomControls);
+    classroomProblemStatus.addEventListener("change", updateClassroomControls);
+    breakoutProblemItem.addEventListener("change", syncAreaStatusOptions);
+    breakoutProblemStatus.addEventListener("change", syncAreaStatusOptions);
+    leisureProblemItem.addEventListener("change", syncAreaStatusOptions);
+    leisureProblemStatus.addEventListener("change", syncAreaStatusOptions);
+    facilityProblemItem.addEventListener("change", syncAreaStatusOptions);
+    facilityProblemStatus.addEventListener("change", syncAreaStatusOptions);
+    dutyEntryMonth.addEventListener("input", () => {
+      renderCalendarChecks(dutyDateGrid, "duty-date", Number(dutyEntryMonth.value || 1));
+    });
+    leaveEntryMonth.addEventListener("input", () => {
+      renderCalendarChecks(leaveDateGrid, "leave-date", Number(leaveEntryMonth.value || 1));
+    });
+
+    addClassroomProblemBtn.addEventListener("click", () => {
+      const itemKey = classroomProblemItem.value;
+      const status = classroomProblemStatus.value;
+      const detail = clean(classroomProblemDetail.value);
+
+      if (status !== "problem") {
+        copyHint.textContent = "只有選擇有問題才需要加入問題。";
+        return;
+      }
+
+      if (!detail) {
+        copyHint.textContent = "請先輸入問題描述。";
+        return;
+      }
+
+      const mics = itemKey === "handMic"
+        ? [mic1Problem.checked ? 1 : null, mic2Problem.checked ? 2 : null].filter((value) => value !== null)
+        : [];
+
+      if (itemKey === "handMic" && mics.length === 0) {
+        copyHint.textContent = "手咪問題請至少選擇手咪 1 或手咪 2。";
+        return;
+      }
+
+      const newProblem = {
+        room: classroomProblemRoom.value,
+        itemKey,
+        detail,
+        mics
+      };
+
+      const alreadyExists = classroomProblems.some((problem) => {
+        return problem.room === newProblem.room
+          && problem.itemKey === newProblem.itemKey
+          && problem.detail === newProblem.detail
+          && JSON.stringify(problem.mics) === JSON.stringify(newProblem.mics);
+      });
+      if (alreadyExists) {
+        copyHint.textContent = "相同課室問題已存在。";
+        return;
+      }
+
+      classroomProblems.push(newProblem);
+      renderClassroomProblemList();
+      copyHint.textContent = "已加入課室問題。";
+      classroomProblemDetail.value = "";
+      mic1Problem.checked = false;
+      mic2Problem.checked = false;
+      updateClassroomControls();
+      generateMessage();
+    });
+
+    classroomProblemList.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      const index = target.dataset.removeProblemIndex;
+      if (index === undefined) {
+        return;
+      }
+
+      classroomProblems.splice(Number(index), 1);
+      renderClassroomProblemList();
+      copyHint.textContent = "已刪除課室問題。";
+      generateMessage();
+    });
+
+    addWifiProblemBtn.addEventListener("click", () => {
+      const detail = clean(wifiProblemDetail.value);
+      if (!detail) {
+        copyHint.textContent = "請先輸入 wifi 鐘問題描述。";
+        return;
+      }
+
+      const newProblem = {
+        room: wifiProblemRoom.value,
+        detail
+      };
+
+      const alreadyExists = wifiProblems.some((problem) => problem.room === newProblem.room && problem.detail === newProblem.detail);
+      if (alreadyExists) {
+        copyHint.textContent = "相同 wifi 鐘問題已存在。";
+        return;
+      }
+
+      wifiProblems.push(newProblem);
+      renderWifiProblemList();
+      wifiProblemDetail.value = "";
+      copyHint.textContent = "已加入 wifi 鐘問題。";
+      generateMessage();
+    });
+
+    wifiProblemList.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      const index = target.dataset.removeWifiProblemIndex;
+      if (index === undefined) {
+        return;
+      }
+
+      wifiProblems.splice(Number(index), 1);
+      renderWifiProblemList();
+      copyHint.textContent = "已刪除 wifi 鐘問題。";
+      generateMessage();
+    });
+
+    addBreakoutProblemBtn.addEventListener("click", () => {
+      const item = breakoutProblemItem.value;
+      const status = breakoutProblemStatus.value;
+      const detail = clean(breakoutProblemDetail.value);
+      if (status !== "problem") {
+        copyHint.textContent = "只有選擇有問題才需要加入問題。";
+        return;
+      }
+      if (!detail) {
+        copyHint.textContent = "請先輸入 Breakout 問題描述。";
+        return;
+      }
+
+      const newProblem = { type: item, label: "枱凳", detail, text: `枱凳 ${detail}` };
+
+      const alreadyExists = breakoutProblems.some((problem) => JSON.stringify(problem) === JSON.stringify(newProblem));
+      if (alreadyExists) {
+        copyHint.textContent = "相同 Breakout 問題已存在。";
+        return;
+      }
+
+      breakoutProblems.push(newProblem);
+      renderSimpleProblemList(breakoutProblemList, breakoutProblems, "remove-breakout-problem-index");
+      breakoutProblemDetail.value = "";
+      breakoutProblemStatus.value = "normal";
+      copyHint.textContent = "已加入 Breakout 問題。";
+      syncAreaStatusOptions();
+      generateMessage();
+    });
+
+    breakoutProblemList.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      const index = target.dataset.removeBreakoutProblemIndex;
+      if (index === undefined) {
+        return;
+      }
+
+      breakoutProblems.splice(Number(index), 1);
+      renderSimpleProblemList(breakoutProblemList, breakoutProblems, "remove-breakout-problem-index");
+      copyHint.textContent = "已刪除 Breakout 問題。";
+      generateMessage();
+    });
+
+    addLeisureProblemBtn.addEventListener("click", () => {
+      const item = leisureProblemItem.value;
+      const status = leisureProblemStatus.value;
+      const detail = clean(leisureProblemDetail.value);
+      if (status !== "problem") {
+        copyHint.textContent = "只有選擇有問題才需要加入問題。";
+        return;
+      }
+      if (!detail) {
+        copyHint.textContent = "請先輸入 Leisure room 問題描述。";
+        return;
+      }
+
+      const labelMap = {
+        chairsTables: "枱凳",
+        cupLids: "咖啡機杯蓋",
+        coffeeSticks: "咖啡棒"
+      };
+      const newProblem = { type: item, label: labelMap[item], detail, text: `${labelMap[item]} ${detail}` };
+
+      const alreadyExists = leisureProblems.some((problem) => JSON.stringify(problem) === JSON.stringify(newProblem));
+      if (alreadyExists) {
+        copyHint.textContent = "相同 Leisure room 問題已存在。";
+        return;
+      }
+
+      leisureProblems.push(newProblem);
+      renderSimpleProblemList(leisureProblemList, leisureProblems, "remove-leisure-problem-index");
+      leisureProblemDetail.value = "";
+      leisureProblemStatus.value = "normal";
+      copyHint.textContent = "已加入 Leisure room 問題。";
+      syncAreaStatusOptions();
+      generateMessage();
+    });
+
+    leisureProblemList.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      const index = target.dataset.removeLeisureProblemIndex;
+      if (index === undefined) {
+        return;
+      }
+
+      leisureProblems.splice(Number(index), 1);
+      renderSimpleProblemList(leisureProblemList, leisureProblems, "remove-leisure-problem-index");
+      copyHint.textContent = "已刪除 Leisure room 問題。";
+      generateMessage();
+    });
+
+    addFacilityProblemBtn.addEventListener("click", () => {
+      const item = facilityProblemItem.value;
+      const status = facilityProblemStatus.value;
+      const detail = clean(facilityProblemDetail.value);
+      if (status !== "problem") {
+        copyHint.textContent = "只有選擇有問題才需要加入問題。";
+        return;
+      }
+      if (!detail) {
+        copyHint.textContent = "請先輸入設施問題描述。";
+        return;
+      }
+
+      const newProblem = {
+        item,
+        detail,
+        text: `${item} ${detail}`
+      };
+
+      const alreadyExists = facilityProblems.some((problem) => problem.item === newProblem.item && problem.detail === newProblem.detail);
+      if (alreadyExists) {
+        copyHint.textContent = "相同設施問題已存在。";
+        return;
+      }
+
+      facilityProblems.push(newProblem);
+      renderSimpleProblemList(facilityProblemList, facilityProblems, "remove-facility-problem-index");
+      facilityProblemDetail.value = "";
+      facilityProblemStatus.value = "normal";
+      copyHint.textContent = "已加入設施問題。";
+      syncAreaStatusOptions();
+      generateMessage();
+    });
+
+    facilityProblemList.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      const index = target.dataset.removeFacilityProblemIndex;
+      if (index === undefined) {
+        return;
+      }
+
+      facilityProblems.splice(Number(index), 1);
+      renderSimpleProblemList(facilityProblemList, facilityProblems, "remove-facility-problem-index");
+      copyHint.textContent = "已刪除設施問題。";
+      generateMessage();
+    });
+
+    addDrillEntryBtn.addEventListener("click", () => {
+      const value = clean(drillEntryInput.value);
+      if (!value) {
+        copyHint.textContent = "請先輸入演習或培訓條目。";
+        return;
+      }
+      if (drillEntries.includes(value)) {
+        copyHint.textContent = "相同演習或培訓條目已存在。";
+        return;
+      }
+      drillEntries.push(value);
+      drillEntryInput.value = "";
+      renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index");
+      copyHint.textContent = "已加入演習或培訓條目。";
+      generateMessage();
+    });
+
+    drillEntryList.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      const index = target.dataset.removeDrillEntryIndex;
+      if (index === undefined) {
+        return;
+      }
+      drillEntries.splice(Number(index), 1);
+      renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index");
+      copyHint.textContent = "已刪除演習或培訓條目。";
+      generateMessage();
+    });
+
+    addAvEntryBtn.addEventListener("click", () => {
+      const value = clean(avEntryInput.value);
+      if (!value) {
+        copyHint.textContent = "請先輸入 AV/IT 條目。";
+        return;
+      }
+      if (avEntries.includes(value)) {
+        copyHint.textContent = "相同 AV/IT 條目已存在。";
+        return;
+      }
+      avEntries.push(value);
+      avEntryInput.value = "";
+      renderEntryList(avEntryList, avEntries.map((entry, index) => `${index + 1}）${entry}`), "remove-av-entry-index");
+      copyHint.textContent = "已加入 AV/IT 條目。";
+      generateMessage();
+    });
+
+    avEntryList.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      const index = target.dataset.removeAvEntryIndex;
+      if (index === undefined) {
+        return;
+      }
+      avEntries.splice(Number(index), 1);
+      renderEntryList(avEntryList, avEntries.map((entry, idx) => `${idx + 1}）${entry}`), "remove-av-entry-index");
+      copyHint.textContent = "已刪除 AV/IT 條目。";
+      generateMessage();
+    });
+
+    addDripEntryBtn.addEventListener("click", () => {
+      const value = clean(dripEntryInput.value);
+      if (!value) {
+        copyHint.textContent = "請先輸入滴水情況條目。";
+        return;
+      }
+      if (dripEntries.includes(value)) {
+        copyHint.textContent = "相同滴水情況條目已存在。";
+        return;
+      }
+      dripEntries.push(value);
+      dripEntryInput.value = "";
+      renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index");
+      copyHint.textContent = "已加入滴水情況條目。";
+      generateMessage();
+    });
+
+    dripEntryList.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      const index = target.dataset.removeDripEntryIndex;
+      if (index === undefined) {
+        return;
+      }
+      dripEntries.splice(Number(index), 1);
+      renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index");
+      copyHint.textContent = "已刪除滴水情況條目。";
+      generateMessage();
+    });
+
+    addRepairEntryBtn.addEventListener("click", () => {
+      const value = clean(repairEntryInput.value);
+      if (!value) {
+        copyHint.textContent = "請先輸入待維修條目。";
+        return;
+      }
+      if (repairEntries.includes(value)) {
+        copyHint.textContent = "相同待維修條目已存在。";
+        return;
+      }
+      repairEntries.push(value);
+      repairEntryInput.value = "";
+      renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index");
+      copyHint.textContent = "已加入待維修條目。";
+      generateMessage();
+    });
+
+    repairEntryList.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      const index = target.dataset.removeRepairEntryIndex;
+      if (index === undefined) {
+        return;
+      }
+      repairEntries.splice(Number(index), 1);
+      renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index");
+      copyHint.textContent = "已刪除待維修條目。";
+      generateMessage();
+    });
+
+    addOtherEntryBtn.addEventListener("click", () => {
+      const value = clean(otherEntryInput.value);
+      if (!value) {
+        copyHint.textContent = "請先輸入其他條目。";
+        return;
+      }
+      if (otherEntries.includes(value)) {
+        copyHint.textContent = "相同其他條目已存在。";
+        return;
+      }
+      otherEntries.push(value);
+      otherEntryInput.value = "";
+      renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index");
+      copyHint.textContent = "已加入其他條目。";
+      generateMessage();
+    });
+
+    otherEntryList.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      const index = target.dataset.removeOtherEntryIndex;
+      if (index === undefined) {
+        return;
+      }
+      otherEntries.splice(Number(index), 1);
+      renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index");
+      copyHint.textContent = "已刪除其他條目。";
+      generateMessage();
+    });
+
+    addDutyEntryBtn.addEventListener("click", () => {
+      const name = clean(dutyEntryName.value);
+      const month = Number(dutyEntryMonth.value);
+      const dates = getCheckedDates("duty-date");
+      if (!name) {
+        copyHint.textContent = "請先輸入當值名稱。";
+        return;
+      }
+      if (dates.length === 0) {
+        copyHint.textContent = "請先勾選當值日期。";
+        return;
+      }
+      const entry = { name, month, dates };
+      const exists = dutyEntries.some((item) => JSON.stringify(item) === JSON.stringify(entry));
+      if (exists) {
+        copyHint.textContent = "相同當值條目已存在。";
+        return;
+      }
+      dutyEntries.push(entry);
+      dutyEntryName.value = "";
+      clearCheckedDates("duty-date");
+      renderCalendarEntryList(dutyEntryList, dutyEntries, "remove-duty-entry-index");
+      copyHint.textContent = "已加入當值條目。";
+      generateMessage();
+    });
+
+    clearDutyDatesBtn.addEventListener("click", () => {
+      clearCheckedDates("duty-date");
+    });
+
+    dutyEntryList.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      const index = target.dataset.removeDutyEntryIndex;
+      if (index === undefined) {
+        return;
+      }
+      dutyEntries.splice(Number(index), 1);
+      renderCalendarEntryList(dutyEntryList, dutyEntries, "remove-duty-entry-index");
+      copyHint.textContent = "已刪除當值條目。";
+      generateMessage();
+    });
+
+    addLeaveEntryBtn.addEventListener("click", () => {
+      const name = clean(leaveEntryName.value);
+      const month = Number(leaveEntryMonth.value);
+      const dates = getCheckedDates("leave-date");
+      if (!name) {
+        copyHint.textContent = "請先輸入 Leave 名稱。";
+        return;
+      }
+      if (dates.length === 0) {
+        copyHint.textContent = "請先勾選 Leave 日期。";
+        return;
+      }
+      const entry = { name, month, dates };
+      const exists = leaveEntries.some((item) => JSON.stringify(item) === JSON.stringify(entry));
+      if (exists) {
+        copyHint.textContent = "相同 Leave 條目已存在。";
+        return;
+      }
+      leaveEntries.push(entry);
+      leaveEntryName.value = "";
+      clearCheckedDates("leave-date");
+      renderCalendarEntryList(leaveEntryList, leaveEntries, "remove-leave-entry-index");
+      copyHint.textContent = "已加入 Leave 條目。";
+      generateMessage();
+    });
+
+    clearLeaveDatesBtn.addEventListener("click", () => {
+      clearCheckedDates("leave-date");
+    });
+
+    leaveEntryList.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      const index = target.dataset.removeLeaveEntryIndex;
+      if (index === undefined) {
+        return;
+      }
+      leaveEntries.splice(Number(index), 1);
+      renderCalendarEntryList(leaveEntryList, leaveEntries, "remove-leave-entry-index");
+      copyHint.textContent = "已刪除 Leave 條目。";
+      generateMessage();
+    });
+
+    importBtn.addEventListener("click", () => {
+      const raw = clean(importText.value);
+      if (!raw) {
+        copyHint.textContent = "請先貼上匯入原文。";
+        return;
+      }
+
+      resetNonImportedSections();
+      const sections = parseSectionMap(raw);
+
+      if (sections["滴水情況:"] !== undefined) {
+        dripEntries = parseLineEntries(sections["滴水情況:"]);
+        renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index");
+      }
+
+      if (sections["AV/IT 設施情況:"] !== undefined) {
+        avEntries = parseNumberedEntries(sections["AV/IT 設施情況:"]);
+        renderEntryList(avEntryList, avEntries.map((entry, index) => `${index + 1}）${entry}`), "remove-av-entry-index");
+      }
+
+      if (sections["Duty:"] !== undefined) {
+        dutyEntries = parseCalendarEntries(sections["Duty:"]);
+        renderCalendarEntryList(dutyEntryList, dutyEntries, "remove-duty-entry-index");
+      }
+
+      if (sections["Leave:"] !== undefined) {
+        leaveEntries = parseCalendarEntries(sections["Leave:"]);
+        renderCalendarEntryList(leaveEntryList, leaveEntries, "remove-leave-entry-index");
+      }
+
+      if (sections["待維修事項："] !== undefined) {
+        repairEntries = parseLineEntries(sections["待維修事項："]);
+        renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index");
+      }
+
+      if (sections["其他:"] !== undefined) {
+        otherEntries = parseLineEntries(sections["其他:"]);
+        renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index");
+      }
+
+      const importedLines = buildImportSummary();
+      copyHint.textContent = importedLines.length > 0
+        ? `已完成匯入：${importedLines.join("；")}`
+        : "已完成匯入，但未解析到指定區塊內容。";
+      activateMobileTab("tab-class");
+      generateMessage();
+      saveState();
+    });
+
+    clearAllBtn.addEventListener("click", () => {
+      if (!window.confirm("確定要重設全頁嗎？所有內容會被清空。")) {
+        return;
+      }
+      resetAllPage();
+    });
+
+    copyBtn.addEventListener("click", async () => {
+      if (!clean(fields.lockerCount.value)) {
+        window.alert("請先填寫 Locker 共借出次數");
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(generateMessage());
+        copyHint.textContent = "已複製到剪貼簿。";
+      } catch (error) {
+        copyHint.textContent = "無法自動複製，請手動選取右邊內容。";
+      }
+    });
+
+    try {
+      updateClassroomControls();
+      syncAreaStatusOptions();
+      activateMobileTab("tab-class");
+      updateFormHeading();
+      renderClassroomProblemList();
+      renderWifiProblemList();
+      renderSimpleProblemList(breakoutProblemList, breakoutProblems, "remove-breakout-problem-index");
+      renderSimpleProblemList(leisureProblemList, leisureProblems, "remove-leisure-problem-index");
+      renderSimpleProblemList(facilityProblemList, facilityProblems, "remove-facility-problem-index");
+      renderEntryList(avEntryList, avEntries.map((entry, index) => `${index + 1}）${entry}`), "remove-av-entry-index");
+      renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index");
+      renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index");
+      renderCalendarChecks(dutyDateGrid, "duty-date", Number(dutyEntryMonth.value));
+      renderCalendarChecks(leaveDateGrid, "leave-date", Number(leaveEntryMonth.value));
+      renderCalendarEntryList(dutyEntryList, dutyEntries, "remove-duty-entry-index");
+      renderCalendarEntryList(leaveEntryList, leaveEntries, "remove-leave-entry-index");
+      renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index");
+      renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index");
+      restoreState();
+      updateFormHeading();
+      generateMessage();
+    } catch (error) {
+    }
+  </script>
+</body>
+</html>
