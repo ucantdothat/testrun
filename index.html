@@ -233,6 +233,12 @@
       color: #b42318;
     }
 
+    .item-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
     .actions {
       display: flex;
       gap: 10px;
@@ -487,15 +493,6 @@
                     <td><label class="occupancy-label"><input class="occupancy" data-period="am" data-room="TC04" type="checkbox"></label></td>
                     <td><label class="occupancy-label"><input class="occupancy" data-period="am" data-room="TC05" type="checkbox"></label></td>
                     <td><label class="occupancy-label"><input class="occupancy" data-period="am" data-room="TC06" type="checkbox"></label></td>
-                  </tr>
-                  <tr>
-                    <td>PM</td>
-                    <td><label class="occupancy-label"><input class="occupancy" data-period="pm" data-room="TC01" type="checkbox"></label></td>
-                    <td><label class="occupancy-label"><input class="occupancy" data-period="pm" data-room="TC02" type="checkbox"></label></td>
-                    <td><label class="occupancy-label"><input class="occupancy" data-period="pm" data-room="TC03" type="checkbox"></label></td>
-                    <td><label class="occupancy-label"><input class="occupancy" data-period="pm" data-room="TC04" type="checkbox"></label></td>
-                    <td><label class="occupancy-label"><input class="occupancy" data-period="pm" data-room="TC05" type="checkbox"></label></td>
-                    <td><label class="occupancy-label"><input class="occupancy" data-period="pm" data-room="TC06" type="checkbox"></label></td>
                   </tr>
                 </tbody>
               </table>
@@ -774,42 +771,6 @@
           </div>
         </div>
 
-        <div class="field">
-          <label>請假安排</label>
-          <div class="checklist-box">
-            <p class="checklist-head">輸入名稱，再勾選日期，系統會輸出成「名稱：日期列表」。</p>
-            <div class="problem-grid">
-              <div class="field">
-                <label for="leaveEntryName">名稱</label>
-                <input id="leaveEntryName" type="text" placeholder="請輸入名稱">
-              </div>
-              <div class="field">
-                <label for="leaveEntryMonth">月份</label>
-                <input id="leaveEntryMonth" type="number" min="1" max="12" value="4">
-              </div>
-            </div>
-            <div class="field">
-              <label>日期</label>
-              <div class="calendar-box">
-                <div class="calendar-weekdays">
-                  <div>日</div>
-                  <div>一</div>
-                  <div>二</div>
-                  <div>三</div>
-                  <div>四</div>
-                  <div>五</div>
-                  <div>六</div>
-                </div>
-                <div id="leaveDateGrid" class="calendar-grid"></div>
-              </div>
-            </div>
-            <div class="actions">
-              <button id="addLeaveEntryBtn" class="secondary" type="button">加入條目</button>
-              <button id="clearLeaveDatesBtn" class="secondary" type="button">清除日期</button>
-            </div>
-            <div id="leaveEntryList" class="problem-list"></div>
-          </div>
-        </div>
         </div>
 
         <div id="tab-repair" class="tab-pane">
@@ -862,9 +823,9 @@
         </div>
         <div class="field">
           <label for="importText">匯入原文</label>
-          <textarea id="importText" placeholder="貼上整段巡查訊息，系統會自動拆入當值、請假、滴水情況、其他、AV/IT 設施情況、待維修事項"></textarea>
+          <textarea id="importText" placeholder="貼上整段巡查訊息，系統會自動拆入當值、滴水情況、其他、AV/IT 設施情況、待維修事項"></textarea>
         </div>
-        <div class="hint">會自動解析：`當值`、`請假`、`滴水情況`、`AV/IT 設施情況`、`待維修事項`、`其他`。</div>
+        <div class="hint">會自動解析：`當值`、`滴水情況`、`AV/IT 設施情況`、`待維修事項`、`其他`。</div>
         </div>
       </section>
     </div>
@@ -935,12 +896,6 @@
     const addDutyEntryBtn = document.getElementById("addDutyEntryBtn");
     const clearDutyDatesBtn = document.getElementById("clearDutyDatesBtn");
     const dutyEntryList = document.getElementById("dutyEntryList");
-    const leaveEntryName = document.getElementById("leaveEntryName");
-    const leaveEntryMonth = document.getElementById("leaveEntryMonth");
-    const leaveDateGrid = document.getElementById("leaveDateGrid");
-    const addLeaveEntryBtn = document.getElementById("addLeaveEntryBtn");
-    const clearLeaveDatesBtn = document.getElementById("clearLeaveDatesBtn");
-    const leaveEntryList = document.getElementById("leaveEntryList");
     const importText = document.getElementById("importText");
     const importBtn = document.getElementById("importBtn");
     const clearAllBtn = document.getElementById("clearAllBtn");
@@ -977,6 +932,7 @@
     let repairEntries = [];
     let dutyEntries = [];
     let leaveEntries = [];
+    let relieverEntries = [];
     let otherEntries = [];
     const currentYear = new Date().getFullYear();
     const STORAGE_KEY = "patrol-report-generator-state-v1";
@@ -1036,22 +992,12 @@
 
     function generateClassStatus() {
       const amRooms = getSelectedRooms("am");
-      const pmRooms = getSelectedRooms("pm");
-      const lines = [];
 
       if (amRooms.length > 0) {
-        lines.push(`今天早上${formatRoomList(amRooms)}有課堂`);
+        return `今天早上${formatRoomList(amRooms)}有課堂`;
       }
 
-      if (pmRooms.length > 0) {
-        lines.push(`今天下午${formatRoomList(pmRooms)}有課堂`);
-      }
-
-      if (lines.length === 0) {
-        return "今天沒有課堂";
-      }
-
-      return lines.join("\n");
+      return "今天早上沒有課堂";
     }
 
     function updateFormHeading() {
@@ -1207,7 +1153,7 @@
       }).join("");
     }
 
-    function renderEntryList(listElement, entries, removeKey) {
+    function renderEntryList(listElement, entries, removeKey, editKey) {
       if (entries.length === 0) {
         listElement.innerHTML = "";
         return;
@@ -1217,7 +1163,10 @@
         return `
           <div class="problem-item">
             <div class="problem-text">${entry}</div>
-            <button class="danger" type="button" data-${removeKey}="${index}">刪除</button>
+            <div class="item-actions">
+              <button class="secondary" type="button" data-${editKey}="${index}">編輯</button>
+              <button class="danger" type="button" data-${removeKey}="${index}">刪除</button>
+            </div>
           </div>
         `;
       }).join("");
@@ -1278,6 +1227,112 @@
       }).join("");
     }
 
+    function renderDutySectionList() {
+      const rows = [
+        ...dutyEntries.map((entry, index) => ({
+          text: `${entry.name}：${entry.dates.map((day) => `${day}/${entry.month}`).join(",")}`,
+          editKey: "edit-duty-entry-index",
+          removeKey: "remove-duty-entry-index",
+          index
+        })),
+        ...leaveEntries.map((entry, index) => ({
+          text: `Leave: ${entry}`,
+          editKey: "edit-leave-import-index",
+          removeKey: "remove-leave-import-index",
+          index
+        })),
+        ...relieverEntries.map((entry, index) => ({
+          text: `Reliever: ${entry}`,
+          editKey: "edit-reliever-import-index",
+          removeKey: "remove-reliever-import-index",
+          index
+        }))
+      ];
+
+      if (rows.length === 0) {
+        dutyEntryList.innerHTML = "";
+        return;
+      }
+
+      dutyEntryList.innerHTML = rows.map((row) => {
+        return `
+          <div class="problem-item">
+            <div class="problem-text">${row.text}</div>
+            <div class="item-actions">
+              <button class="secondary" type="button" data-${row.editKey}="${row.index}">編輯</button>
+              <button class="danger" type="button" data-${row.removeKey}="${row.index}">刪除</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function parseDutyEntryText(text) {
+      const value = clean(text || "");
+      const separatorIndex = value.indexOf("：");
+      if (!value || separatorIndex === -1) {
+        return null;
+      }
+
+      const name = clean(value.slice(0, separatorIndex));
+      const datesPart = clean(value.slice(separatorIndex + 1));
+      if (!name || !datesPart) {
+        return null;
+      }
+
+      const dateItems = datesPart.split(",").map((item) => clean(item)).filter(Boolean);
+      if (dateItems.length === 0) {
+        return null;
+      }
+
+      const parsedDates = dateItems.map((item) => {
+        const match = item.match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (!match) {
+          return null;
+        }
+
+        const day = Number(match[1]);
+        const month = Number(match[2]);
+        if (!day || !month || day < 1 || day > 31 || month < 1 || month > 12) {
+          return null;
+        }
+
+        return { day, month };
+      });
+
+      if (parsedDates.some((item) => item === null)) {
+        return null;
+      }
+
+      const months = [...new Set(parsedDates.map((item) => item.month))];
+      if (months.length !== 1) {
+        return null;
+      }
+
+      return {
+        name,
+        month: months[0],
+        dates: parsedDates.map((item) => item.day)
+      };
+    }
+
+    function updateEntryAfterEdit(entries, index, nextValue, duplicateMessage, emptyMessage) {
+      const value = clean(nextValue || "");
+      if (!value) {
+        copyHint.textContent = emptyMessage;
+        return false;
+      }
+
+      const duplicateIndex = entries.findIndex((entry, entryIndex) => entry === value && entryIndex !== index);
+      if (duplicateIndex !== -1) {
+        copyHint.textContent = duplicateMessage;
+        return false;
+      }
+
+      entries[index] = value;
+      return true;
+    }
+
     function activateMobileTab(targetId) {
       formTabs.forEach((tab) => {
         tab.classList.toggle("active", tab.dataset.tabTarget === targetId);
@@ -1292,7 +1347,7 @@
     }
 
     function getAvSectionText() {
-      return avEntries.length > 0 ? joinNumberedEntries(avEntries) : "Nil";
+      return avEntries.length > 0 ? joinNumberedEntries(avEntries) : "NIL";
     }
 
     function syncAreaStatusOptions() {
@@ -1453,6 +1508,10 @@
       return entries.map((entry) => `${entry.name}：${entry.dates.map((day) => `${day}/${entry.month}`).join(",")}`).join("\n");
     }
 
+    function joinEntriesInline(entries) {
+      return entries.join("\n");
+    }
+
     function saveState() {
       try {
         const activeTabElement = formTabs.find((tab) => tab.classList.contains("active"));
@@ -1474,6 +1533,7 @@
           repairEntries,
           dutyEntries,
           leaveEntries,
+          relieverEntries,
           otherEntries,
           importText: importText.value,
           activeTab: activeTabElement && activeTabElement.dataset ? activeTabElement.dataset.tabTarget : "tab-class"
@@ -1519,6 +1579,7 @@
         repairEntries = Array.isArray(state.repairEntries) ? state.repairEntries : repairEntries;
         dutyEntries = Array.isArray(state.dutyEntries) ? state.dutyEntries : dutyEntries;
         leaveEntries = Array.isArray(state.leaveEntries) ? state.leaveEntries : leaveEntries;
+        relieverEntries = Array.isArray(state.relieverEntries) ? state.relieverEntries : relieverEntries;
         otherEntries = Array.isArray(state.otherEntries) ? state.otherEntries : otherEntries;
         importText.value = typeof state.importText === "string" ? state.importText : importText.value;
 
@@ -1527,13 +1588,12 @@
         renderSimpleProblemList(breakoutProblemList, breakoutProblems, "remove-breakout-problem-index");
         renderSimpleProblemList(leisureProblemList, leisureProblems, "remove-leisure-problem-index");
         renderSimpleProblemList(facilityProblemList, facilityProblems, "remove-facility-problem-index");
-        renderEntryList(avEntryList, avEntries.map((entry, index) => `${index + 1}）${entry}`), "remove-av-entry-index");
-        renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index");
-        renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index");
-        renderCalendarEntryList(dutyEntryList, dutyEntries, "remove-duty-entry-index");
-        renderCalendarEntryList(leaveEntryList, leaveEntries, "remove-leave-entry-index");
-        renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index");
-        renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index");
+        renderEntryList(avEntryList, avEntries.map((entry, index) => `${index + 1}）${entry}`), "remove-av-entry-index", "edit-av-entry-index");
+        renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index", "edit-drip-entry-index");
+        renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index", "edit-drill-entry-index");
+        renderDutySectionList();
+        renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index", "edit-repair-entry-index");
+        renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index", "edit-other-entry-index");
 
         if (state.activeTab) {
           activateMobileTab(state.activeTab);
@@ -1576,7 +1636,7 @@
       facilityProblemDetail.value = "";
       facilityProblemStatus.value = "normal";
       drillEntries = [];
-      renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index");
+      renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index", "edit-drill-entry-index");
       drillEntryInput.value = "";
       applyCurrentDateTime();
     }
@@ -1604,6 +1664,7 @@
       repairEntries = [];
       dutyEntries = [];
       leaveEntries = [];
+      relieverEntries = [];
       otherEntries = [];
 
       classroomProblemDetail.value = "";
@@ -1624,12 +1685,9 @@
       otherEntryInput.value = "";
       dutyEntryName.value = "";
       dutyEntryMonth.value = "4";
-      leaveEntryName.value = "";
-      leaveEntryMonth.value = "4";
       importText.value = "";
 
       clearCheckedDates("duty-date");
-      clearCheckedDates("leave-date");
       updateClassroomControls();
       syncAreaStatusOptions();
       renderClassroomProblemList();
@@ -1637,13 +1695,12 @@
       renderSimpleProblemList(breakoutProblemList, breakoutProblems, "remove-breakout-problem-index");
       renderSimpleProblemList(leisureProblemList, leisureProblems, "remove-leisure-problem-index");
       renderSimpleProblemList(facilityProblemList, facilityProblems, "remove-facility-problem-index");
-      renderEntryList(avEntryList, avEntries, "remove-av-entry-index");
-      renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index");
-      renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index");
-      renderCalendarEntryList(dutyEntryList, dutyEntries, "remove-duty-entry-index");
-      renderCalendarEntryList(leaveEntryList, leaveEntries, "remove-leave-entry-index");
-      renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index");
-      renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index");
+      renderEntryList(avEntryList, avEntries, "remove-av-entry-index", "edit-av-entry-index");
+      renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index", "edit-drip-entry-index");
+      renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index", "edit-drill-entry-index");
+      renderDutySectionList();
+      renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index", "edit-repair-entry-index");
+      renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index", "edit-other-entry-index");
       localStorage.removeItem(STORAGE_KEY);
       activateMobileTab("tab-class");
       generateMessage();
@@ -1658,6 +1715,7 @@
         "Drill or training topic and date:",
         "Duty:",
         "Leave:",
+        "Reliever:",
         "待維修事項：",
         "其他:"
       ];
@@ -1667,10 +1725,15 @@
       let currentTitle = null;
 
       lines.forEach((line) => {
-        const matchedTitle = sectionTitles.find((title) => line.trim() === title);
+        const trimmedLine = line.trim();
+        const matchedTitle = sectionTitles.find((title) => trimmedLine === title || trimmedLine.startsWith(`${title} `));
         if (matchedTitle) {
           currentTitle = matchedTitle;
           sectionMap[currentTitle] = [];
+          const inlineValue = trimmedLine.slice(matchedTitle.length).trim();
+          if (inlineValue) {
+            sectionMap[currentTitle].push(inlineValue);
+          }
           return;
         }
 
@@ -1739,7 +1802,10 @@
         lines.push(`Duty：${dutyEntries.map((entry) => `${entry.name}：${entry.dates.map((day) => `${day}/${entry.month}`).join(",")}`).join(" | ")}`);
       }
       if (leaveEntries.length > 0) {
-        lines.push(`Leave：${leaveEntries.map((entry) => `${entry.name}：${entry.dates.map((day) => `${day}/${entry.month}`).join(",")}`).join(" | ")}`);
+        lines.push(`Leave：${leaveEntries.join(" | ")}`);
+      }
+      if (relieverEntries.length > 0) {
+        lines.push(`Reliever：${relieverEntries.join(" | ")}`);
       }
       if (dripEntries.length > 0) {
         lines.push(`滴水情況：${dripEntries.join(" | ")}`);
@@ -1794,10 +1860,13 @@
         joinCalendarEntries(dutyEntries),
         "",
         "Leave:",
-        joinCalendarEntries(leaveEntries),
+        joinEntriesInline(leaveEntries),
         "",
-        "待維修事項：",
-        joinEntries(repairEntries),
+        "Reliever:",
+        joinEntriesInline(relieverEntries),
+        "",
+         "待維修事項：",
+         joinEntries(repairEntries),
         "",
         "其他:",
         joinEntries(otherEntries)
@@ -1846,9 +1915,6 @@
     facilityProblemStatus.addEventListener("change", syncAreaStatusOptions);
     dutyEntryMonth.addEventListener("input", () => {
       renderCalendarChecks(dutyDateGrid, "duty-date", Number(dutyEntryMonth.value || 1));
-    });
-    leaveEntryMonth.addEventListener("input", () => {
-      renderCalendarChecks(leaveDateGrid, "leave-date", Number(leaveEntryMonth.value || 1));
     });
 
     addClassroomProblemBtn.addEventListener("click", () => {
@@ -2124,7 +2190,7 @@
       }
       drillEntries.push(value);
       drillEntryInput.value = "";
-      renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index");
+      renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index", "edit-drill-entry-index");
       copyHint.textContent = "已加入演習或培訓條目。";
       generateMessage();
     });
@@ -2134,12 +2200,28 @@
       if (!(target instanceof HTMLElement)) {
         return;
       }
-      const index = target.dataset.removeDrillEntryIndex;
-      if (index === undefined) {
+      const editIndex = target.dataset.editDrillEntryIndex;
+      if (editIndex !== undefined) {
+        const nextValue = window.prompt("編輯演習或培訓條目", drillEntries[Number(editIndex)] || "");
+        if (nextValue === null) {
+          return;
+        }
+        const updated = updateEntryAfterEdit(drillEntries, Number(editIndex), nextValue, "相同演習或培訓條目已存在。", "演習或培訓條目不可留空。");
+        if (!updated) {
+          return;
+        }
+        renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index", "edit-drill-entry-index");
+        copyHint.textContent = "已更新演習或培訓條目。";
+        generateMessage();
         return;
       }
-      drillEntries.splice(Number(index), 1);
-      renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index");
+
+      const removeIndex = target.dataset.removeDrillEntryIndex;
+      if (removeIndex === undefined) {
+        return;
+      }
+      drillEntries.splice(Number(removeIndex), 1);
+      renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index", "edit-drill-entry-index");
       copyHint.textContent = "已刪除演習或培訓條目。";
       generateMessage();
     });
@@ -2156,7 +2238,7 @@
       }
       avEntries.push(value);
       avEntryInput.value = "";
-      renderEntryList(avEntryList, avEntries.map((entry, index) => `${index + 1}）${entry}`), "remove-av-entry-index");
+      renderEntryList(avEntryList, avEntries.map((entry, index) => `${index + 1}）${entry}`), "remove-av-entry-index", "edit-av-entry-index");
       copyHint.textContent = "已加入 AV/IT 條目。";
       generateMessage();
     });
@@ -2166,12 +2248,28 @@
       if (!(target instanceof HTMLElement)) {
         return;
       }
-      const index = target.dataset.removeAvEntryIndex;
-      if (index === undefined) {
+      const editIndex = target.dataset.editAvEntryIndex;
+      if (editIndex !== undefined) {
+        const nextValue = window.prompt("編輯 AV/IT 條目", avEntries[Number(editIndex)] || "");
+        if (nextValue === null) {
+          return;
+        }
+        const updated = updateEntryAfterEdit(avEntries, Number(editIndex), nextValue, "相同 AV/IT 條目已存在。", "AV/IT 條目不可留空。");
+        if (!updated) {
+          return;
+        }
+        renderEntryList(avEntryList, avEntries.map((entry, idx) => `${idx + 1}）${entry}`), "remove-av-entry-index", "edit-av-entry-index");
+        copyHint.textContent = "已更新 AV/IT 條目。";
+        generateMessage();
         return;
       }
-      avEntries.splice(Number(index), 1);
-      renderEntryList(avEntryList, avEntries.map((entry, idx) => `${idx + 1}）${entry}`), "remove-av-entry-index");
+
+      const removeIndex = target.dataset.removeAvEntryIndex;
+      if (removeIndex === undefined) {
+        return;
+      }
+      avEntries.splice(Number(removeIndex), 1);
+      renderEntryList(avEntryList, avEntries.map((entry, idx) => `${idx + 1}）${entry}`), "remove-av-entry-index", "edit-av-entry-index");
       copyHint.textContent = "已刪除 AV/IT 條目。";
       generateMessage();
     });
@@ -2188,7 +2286,7 @@
       }
       dripEntries.push(value);
       dripEntryInput.value = "";
-      renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index");
+      renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index", "edit-drip-entry-index");
       copyHint.textContent = "已加入滴水情況條目。";
       generateMessage();
     });
@@ -2198,12 +2296,28 @@
       if (!(target instanceof HTMLElement)) {
         return;
       }
-      const index = target.dataset.removeDripEntryIndex;
-      if (index === undefined) {
+      const editIndex = target.dataset.editDripEntryIndex;
+      if (editIndex !== undefined) {
+        const nextValue = window.prompt("編輯滴水情況條目", dripEntries[Number(editIndex)] || "");
+        if (nextValue === null) {
+          return;
+        }
+        const updated = updateEntryAfterEdit(dripEntries, Number(editIndex), nextValue, "相同滴水情況條目已存在。", "滴水情況條目不可留空。");
+        if (!updated) {
+          return;
+        }
+        renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index", "edit-drip-entry-index");
+        copyHint.textContent = "已更新滴水情況條目。";
+        generateMessage();
         return;
       }
-      dripEntries.splice(Number(index), 1);
-      renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index");
+
+      const removeIndex = target.dataset.removeDripEntryIndex;
+      if (removeIndex === undefined) {
+        return;
+      }
+      dripEntries.splice(Number(removeIndex), 1);
+      renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index", "edit-drip-entry-index");
       copyHint.textContent = "已刪除滴水情況條目。";
       generateMessage();
     });
@@ -2220,7 +2334,7 @@
       }
       repairEntries.push(value);
       repairEntryInput.value = "";
-      renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index");
+      renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index", "edit-repair-entry-index");
       copyHint.textContent = "已加入待維修條目。";
       generateMessage();
     });
@@ -2230,12 +2344,28 @@
       if (!(target instanceof HTMLElement)) {
         return;
       }
-      const index = target.dataset.removeRepairEntryIndex;
-      if (index === undefined) {
+      const editIndex = target.dataset.editRepairEntryIndex;
+      if (editIndex !== undefined) {
+        const nextValue = window.prompt("編輯待維修條目", repairEntries[Number(editIndex)] || "");
+        if (nextValue === null) {
+          return;
+        }
+        const updated = updateEntryAfterEdit(repairEntries, Number(editIndex), nextValue, "相同待維修條目已存在。", "待維修條目不可留空。");
+        if (!updated) {
+          return;
+        }
+        renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index", "edit-repair-entry-index");
+        copyHint.textContent = "已更新待維修條目。";
+        generateMessage();
         return;
       }
-      repairEntries.splice(Number(index), 1);
-      renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index");
+
+      const removeIndex = target.dataset.removeRepairEntryIndex;
+      if (removeIndex === undefined) {
+        return;
+      }
+      repairEntries.splice(Number(removeIndex), 1);
+      renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index", "edit-repair-entry-index");
       copyHint.textContent = "已刪除待維修條目。";
       generateMessage();
     });
@@ -2252,7 +2382,7 @@
       }
       otherEntries.push(value);
       otherEntryInput.value = "";
-      renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index");
+      renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index", "edit-other-entry-index");
       copyHint.textContent = "已加入其他條目。";
       generateMessage();
     });
@@ -2262,12 +2392,28 @@
       if (!(target instanceof HTMLElement)) {
         return;
       }
-      const index = target.dataset.removeOtherEntryIndex;
-      if (index === undefined) {
+      const editIndex = target.dataset.editOtherEntryIndex;
+      if (editIndex !== undefined) {
+        const nextValue = window.prompt("編輯其他條目", otherEntries[Number(editIndex)] || "");
+        if (nextValue === null) {
+          return;
+        }
+        const updated = updateEntryAfterEdit(otherEntries, Number(editIndex), nextValue, "相同其他條目已存在。", "其他條目不可留空。");
+        if (!updated) {
+          return;
+        }
+        renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index", "edit-other-entry-index");
+        copyHint.textContent = "已更新其他條目。";
+        generateMessage();
         return;
       }
-      otherEntries.splice(Number(index), 1);
-      renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index");
+
+      const removeIndex = target.dataset.removeOtherEntryIndex;
+      if (removeIndex === undefined) {
+        return;
+      }
+      otherEntries.splice(Number(removeIndex), 1);
+      renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index", "edit-other-entry-index");
       copyHint.textContent = "已刪除其他條目。";
       generateMessage();
     });
@@ -2293,7 +2439,7 @@
       dutyEntries.push(entry);
       dutyEntryName.value = "";
       clearCheckedDates("duty-date");
-      renderCalendarEntryList(dutyEntryList, dutyEntries, "remove-duty-entry-index");
+      renderDutySectionList();
       copyHint.textContent = "已加入當值條目。";
       generateMessage();
     });
@@ -2307,59 +2453,96 @@
       if (!(target instanceof HTMLElement)) {
         return;
       }
-      const index = target.dataset.removeDutyEntryIndex;
-      if (index === undefined) {
-        return;
-      }
-      dutyEntries.splice(Number(index), 1);
-      renderCalendarEntryList(dutyEntryList, dutyEntries, "remove-duty-entry-index");
-      copyHint.textContent = "已刪除當值條目。";
-      generateMessage();
-    });
 
-    addLeaveEntryBtn.addEventListener("click", () => {
-      const name = clean(leaveEntryName.value);
-      const month = Number(leaveEntryMonth.value);
-      const dates = getCheckedDates("leave-date");
-      if (!name) {
-        copyHint.textContent = "請先輸入 Leave 名稱。";
-        return;
-      }
-      if (dates.length === 0) {
-        copyHint.textContent = "請先勾選 Leave 日期。";
-        return;
-      }
-      const entry = { name, month, dates };
-      const exists = leaveEntries.some((item) => JSON.stringify(item) === JSON.stringify(entry));
-      if (exists) {
-        copyHint.textContent = "相同 Leave 條目已存在。";
-        return;
-      }
-      leaveEntries.push(entry);
-      leaveEntryName.value = "";
-      clearCheckedDates("leave-date");
-      renderCalendarEntryList(leaveEntryList, leaveEntries, "remove-leave-entry-index");
-      copyHint.textContent = "已加入 Leave 條目。";
-      generateMessage();
-    });
+      const editDutyIndex = target.dataset.editDutyEntryIndex;
+      if (editDutyIndex !== undefined) {
+        const currentEntry = dutyEntries[Number(editDutyIndex)];
+        const nextValue = window.prompt(
+          "編輯當值條目",
+          currentEntry ? `${currentEntry.name}：${currentEntry.dates.map((day) => `${day}/${currentEntry.month}`).join(",")}` : ""
+        );
+        if (nextValue === null) {
+          return;
+        }
 
-    clearLeaveDatesBtn.addEventListener("click", () => {
-      clearCheckedDates("leave-date");
-    });
+        const parsedEntry = parseDutyEntryText(nextValue);
+        if (!parsedEntry) {
+          copyHint.textContent = "當值條目格式需為「名稱：日/月,日/月」，而且月份需一致。";
+          return;
+        }
 
-    leaveEntryList.addEventListener("click", (event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) {
+        const duplicateDutyIndex = dutyEntries.findIndex((entry, index) => {
+          return index !== Number(editDutyIndex) && JSON.stringify(entry) === JSON.stringify(parsedEntry);
+        });
+        if (duplicateDutyIndex !== -1) {
+          copyHint.textContent = "相同當值條目已存在。";
+          return;
+        }
+
+        dutyEntries[Number(editDutyIndex)] = parsedEntry;
+        renderDutySectionList();
+        copyHint.textContent = "已更新當值條目。";
+        generateMessage();
         return;
       }
-      const index = target.dataset.removeLeaveEntryIndex;
-      if (index === undefined) {
+
+      const editLeaveIndex = target.dataset.editLeaveImportIndex;
+      if (editLeaveIndex !== undefined) {
+        const nextValue = window.prompt("編輯 Leave 條目", leaveEntries[Number(editLeaveIndex)] || "");
+        if (nextValue === null) {
+          return;
+        }
+        const updated = updateEntryAfterEdit(leaveEntries, Number(editLeaveIndex), nextValue, "相同 Leave 條目已存在。", "Leave 條目不可留空。");
+        if (!updated) {
+          return;
+        }
+        renderDutySectionList();
+        copyHint.textContent = "已更新 Leave 條目。";
+        generateMessage();
         return;
       }
-      leaveEntries.splice(Number(index), 1);
-      renderCalendarEntryList(leaveEntryList, leaveEntries, "remove-leave-entry-index");
-      copyHint.textContent = "已刪除 Leave 條目。";
-      generateMessage();
+
+      const editRelieverIndex = target.dataset.editRelieverImportIndex;
+      if (editRelieverIndex !== undefined) {
+        const nextValue = window.prompt("編輯 Reliever 條目", relieverEntries[Number(editRelieverIndex)] || "");
+        if (nextValue === null) {
+          return;
+        }
+        const updated = updateEntryAfterEdit(relieverEntries, Number(editRelieverIndex), nextValue, "相同 Reliever 條目已存在。", "Reliever 條目不可留空。");
+        if (!updated) {
+          return;
+        }
+        renderDutySectionList();
+        copyHint.textContent = "已更新 Reliever 條目。";
+        generateMessage();
+        return;
+      }
+
+      const dutyIndex = target.dataset.removeDutyEntryIndex;
+      if (dutyIndex !== undefined) {
+        dutyEntries.splice(Number(dutyIndex), 1);
+        renderDutySectionList();
+        copyHint.textContent = "已刪除當值條目。";
+        generateMessage();
+        return;
+      }
+
+      const leaveIndex = target.dataset.removeLeaveImportIndex;
+      if (leaveIndex !== undefined) {
+        leaveEntries.splice(Number(leaveIndex), 1);
+        renderDutySectionList();
+        copyHint.textContent = "已刪除 Leave 條目。";
+        generateMessage();
+        return;
+      }
+
+      const relieverIndex = target.dataset.removeRelieverImportIndex;
+      if (relieverIndex !== undefined) {
+        relieverEntries.splice(Number(relieverIndex), 1);
+        renderDutySectionList();
+        copyHint.textContent = "已刪除 Reliever 條目。";
+        generateMessage();
+      }
     });
 
     importBtn.addEventListener("click", () => {
@@ -2374,32 +2557,42 @@
 
       if (sections["滴水情況:"] !== undefined) {
         dripEntries = parseLineEntries(sections["滴水情況:"]);
-        renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index");
+        renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index", "edit-drip-entry-index");
       }
 
       if (sections["AV/IT 設施情況:"] !== undefined) {
         avEntries = parseNumberedEntries(sections["AV/IT 設施情況:"]);
-        renderEntryList(avEntryList, avEntries.map((entry, index) => `${index + 1}）${entry}`), "remove-av-entry-index");
+        renderEntryList(avEntryList, avEntries.map((entry, index) => `${index + 1}）${entry}`), "remove-av-entry-index", "edit-av-entry-index");
+      }
+
+      if (sections["Drill or training topic and date:"] !== undefined) {
+        drillEntries = parseLineEntries(sections["Drill or training topic and date:"]);
+        renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index", "edit-drill-entry-index");
       }
 
       if (sections["Duty:"] !== undefined) {
         dutyEntries = parseCalendarEntries(sections["Duty:"]);
-        renderCalendarEntryList(dutyEntryList, dutyEntries, "remove-duty-entry-index");
+        renderDutySectionList();
       }
 
       if (sections["Leave:"] !== undefined) {
-        leaveEntries = parseCalendarEntries(sections["Leave:"]);
-        renderCalendarEntryList(leaveEntryList, leaveEntries, "remove-leave-entry-index");
+        leaveEntries = parseLineEntries(sections["Leave:"]);
       }
+
+      if (sections["Reliever:"] !== undefined) {
+        relieverEntries = parseLineEntries(sections["Reliever:"]);
+      }
+
+      renderDutySectionList();
 
       if (sections["待維修事項："] !== undefined) {
         repairEntries = parseLineEntries(sections["待維修事項："]);
-        renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index");
+        renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index", "edit-repair-entry-index");
       }
 
       if (sections["其他:"] !== undefined) {
         otherEntries = parseLineEntries(sections["其他:"]);
-        renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index");
+        renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index", "edit-other-entry-index");
       }
 
       const importedLines = buildImportSummary();
@@ -2442,15 +2635,13 @@
       renderSimpleProblemList(breakoutProblemList, breakoutProblems, "remove-breakout-problem-index");
       renderSimpleProblemList(leisureProblemList, leisureProblems, "remove-leisure-problem-index");
       renderSimpleProblemList(facilityProblemList, facilityProblems, "remove-facility-problem-index");
-      renderEntryList(avEntryList, avEntries.map((entry, index) => `${index + 1}）${entry}`), "remove-av-entry-index");
-      renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index");
-      renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index");
+      renderEntryList(avEntryList, avEntries.map((entry, index) => `${index + 1}）${entry}`), "remove-av-entry-index", "edit-av-entry-index");
+      renderEntryList(dripEntryList, dripEntries, "remove-drip-entry-index", "edit-drip-entry-index");
+      renderEntryList(drillEntryList, drillEntries, "remove-drill-entry-index", "edit-drill-entry-index");
       renderCalendarChecks(dutyDateGrid, "duty-date", Number(dutyEntryMonth.value));
-      renderCalendarChecks(leaveDateGrid, "leave-date", Number(leaveEntryMonth.value));
-      renderCalendarEntryList(dutyEntryList, dutyEntries, "remove-duty-entry-index");
-      renderCalendarEntryList(leaveEntryList, leaveEntries, "remove-leave-entry-index");
-      renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index");
-      renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index");
+      renderDutySectionList();
+      renderEntryList(repairEntryList, repairEntries, "remove-repair-entry-index", "edit-repair-entry-index");
+      renderEntryList(otherEntryList, otherEntries, "remove-other-entry-index", "edit-other-entry-index");
       restoreState();
       updateFormHeading();
       generateMessage();
