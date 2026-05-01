@@ -682,7 +682,7 @@
         <div id="tab-washroom" class="tab-pane">
         <div class="field">
           <label for="toiletStatus">洗手間情況</label>
-          <textarea id="toiletStatus"></textarea>
+          <textarea id="toiletStatus">五個洗手間正常</textarea>
         </div>
 
         <div class="field">
@@ -1048,7 +1048,7 @@
       }
 
       if (lines.length === 0) {
-        return "";
+        return "今天沒有課堂";
       }
 
       return lines.join("\n");
@@ -1291,6 +1291,10 @@
       return entries.map((entry, index) => `${index + 1}）${entry}`).join("\n\n");
     }
 
+    function getAvSectionText() {
+      return avEntries.length > 0 ? joinNumberedEntries(avEntries) : "Nil";
+    }
+
     function syncAreaStatusOptions() {
       breakoutProblemStatus.options[0].textContent = `正常（${breakoutNormalStatusLabels[breakoutProblemItem.value] || "正常"}）`;
       leisureProblemStatus.options[0].textContent = `正常（${leisureNormalStatusLabels[leisureProblemItem.value] || "正常"}）`;
@@ -1412,7 +1416,12 @@
 
       const normalText = normalParts.join("，");
       const problemText = problemParts.join("，");
-      return normalText ? `${normalText}，但${problemText}` : problemText;
+
+      if (normalText && problemText) {
+        return `${normalText}，但${problemText}`;
+      }
+
+      return normalText || problemText;
     }
 
     function generateFacilityStatus() {
@@ -1578,6 +1587,7 @@
       });
       fields.date.value = formatLocalDate(new Date());
       fields.time.value = "0915";
+      fields.toiletStatus.value = initialValues.toiletStatus;
 
       occupancyInputs.forEach((input) => {
         input.checked = false;
@@ -1776,7 +1786,7 @@
         "",
         section("滴水情況: ", joinEntries(dripEntries)),
         "",
-        section("AV/IT 設施情況: ", joinNumberedEntries(avEntries)),
+        section("AV/IT 設施情況: ", getAvSectionText()),
         "",
         section("Drill or training topic and date: ", joinEntries(drillEntries)),
         "",
