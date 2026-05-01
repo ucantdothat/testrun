@@ -1512,6 +1512,14 @@
       return entries.join("\n");
     }
 
+    function getDutySectionText() {
+      return [
+        ...dutyEntries.map((entry) => `${entry.name}：${entry.dates.map((day) => `${day}/${entry.month}`).join(",")}`),
+        ...leaveEntries.map((entry) => `Leave: ${entry}`),
+        ...relieverEntries.map((entry) => `Reliever: ${entry}`)
+      ].join("\n");
+    }
+
     function saveState() {
       try {
         const activeTabElement = formTabs.find((tab) => tab.classList.contains("active"));
@@ -1798,14 +1806,9 @@
     function buildImportSummary() {
       const lines = [];
 
-      if (dutyEntries.length > 0) {
-        lines.push(`Duty：${dutyEntries.map((entry) => `${entry.name}：${entry.dates.map((day) => `${day}/${entry.month}`).join(",")}`).join(" | ")}`);
-      }
-      if (leaveEntries.length > 0) {
-        lines.push(`Leave：${leaveEntries.join(" | ")}`);
-      }
-      if (relieverEntries.length > 0) {
-        lines.push(`Reliever：${relieverEntries.join(" | ")}`);
+      const dutySummary = getDutySectionText();
+      if (dutySummary) {
+        lines.push(`Duty：${dutySummary.replace(/\n/g, " | ")}`);
       }
       if (dripEntries.length > 0) {
         lines.push(`滴水情況：${dripEntries.join(" | ")}`);
@@ -1856,14 +1859,7 @@
         "",
         section("Drill or training topic and date: ", joinEntries(drillEntries)),
         "",
-        "Duty: ",
-        joinCalendarEntries(dutyEntries),
-        "",
-        "Leave:",
-        joinEntriesInline(leaveEntries),
-        "",
-        "Reliever:",
-        joinEntriesInline(relieverEntries),
+        section("Duty:", getDutySectionText()),
         "",
          "待維修事項：",
          joinEntries(repairEntries),
